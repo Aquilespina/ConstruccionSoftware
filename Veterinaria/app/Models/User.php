@@ -18,10 +18,27 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
-        'email',
+        'correo_electronico',
+        'nombre_usuario',
         'password',
+        'tipo_permiso',
+        'estado',
     ];
+
+    /**
+     * The table associated with the model.
+     */
+    protected $table = 'usuario';
+
+    /**
+     * The primary key associated with the table.
+     */
+    protected $primaryKey = 'id_usuario';
+
+    /**
+     * Indicates if the model should be timestamped.
+     */
+    public $timestamps = false;
 
     /**
      * The attributes that should be hidden for serialization.
@@ -41,7 +58,6 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
