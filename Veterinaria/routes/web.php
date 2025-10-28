@@ -2,7 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Mascota\MascotaController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -34,18 +33,6 @@ Route::middleware(['auth', 'role:recepcionista'])->group(function () {
     // Rutas de propietarios (archivo separado)
     require __DIR__.'/propietarios/propietario.php';
 
-    // Rutas de mascotas
-    Route::prefix('mascotas')->name('mascotas.')->controller(MascotaController::class)->group(function () {
-        Route::get('/', 'index')->name('index');
-        Route::get('/crear', 'create')->name('create');
-        Route::post('/', 'store')->name('store');
-        Route::get('/{id}', 'show')->name('show');
-        Route::get('/{id}/editar', 'edit')->name('edit');
-        Route::put('/{id}', 'update')->name('update');
-        Route::delete('/{id}', 'destroy')->name('destroy');
-        // Historial básico
-        Route::get('/{id}/historial', function ($id) {
-            return response()->view('dash.recepcion', [ 'historialMascotaId' => $id ]);
-        })->name('historial');
-    });
+    // Rutas de mascotas (archivo separado)
+    require __DIR__.'/mascotas/mascota.php';
 });
