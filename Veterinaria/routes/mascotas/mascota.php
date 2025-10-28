@@ -2,7 +2,6 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Mascota\MascotaController;
 
-    // Rutas de mascotas
     Route::prefix('mascotas')->name('mascotas.')->controller(MascotaController::class)->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/crear', 'create')->name('create');
