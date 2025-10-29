@@ -12,7 +12,8 @@ class MascotaController extends Controller
      */
     public function index()
     {
-        //
+
+            return view('dash.recepcion.mascotas');
     }
 
     /**

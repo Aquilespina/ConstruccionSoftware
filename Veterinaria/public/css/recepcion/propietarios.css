@@ -1,0 +1,4 @@
+/* Estilos para Propietarios */
+#mod-propietarios { padding: 16px; }
+.user-avatar{ width:32px; height:32px; display:inline-flex; align-items:center; justify-content:center; border-radius:6px; background:#f3f4f6 }
+.table-container .data-table td { vertical-align: middle; }

@@ -1,0 +1,5 @@
+/* Estilos específicos para Expedientes */
+#mod-expedientes { padding: 18px; }
+.expediente-card { border: 1px solid #e6edf3; border-radius: 8px; padding: 12px; margin-bottom: 12px; background: #fff; }
+.expediente-header h3{ margin:0; }
+.chip { background:#eef2ff; padding:4px 8px; border-radius:8px; }

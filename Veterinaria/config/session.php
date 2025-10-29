@@ -18,7 +18,10 @@ return [
     |
     */
 
-    'driver' => env('SESSION_DRIVER', 'database'),
+    // Default to file sessions for local/dev to avoid requiring a sessions table
+    // in environments that haven't run the session migration yet. You can
+    // override this in your .env with SESSION_DRIVER=database when ready.
+    'driver' => env('SESSION_DRIVER', 'file'),
 
     /*
     |--------------------------------------------------------------------------

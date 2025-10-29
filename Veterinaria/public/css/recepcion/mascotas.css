@@ -1,0 +1,9 @@
+/* Estilos específicos para la sección Mascotas (recepcion/mascotas)
+   Puedes ampliar o sobrescribir reglas del archivo global recepcion.css aquí */
+
+#mod-mascotas { padding: 16px; }
+.data-table th, .data-table td { padding: 8px 12px; }
+.pet-avatar { font-size: 20px; }
+
+/* Ejemplo: destacar la primera fila */
+.table-container .data-table tbody tr:first-child { background: rgba(14,165,233,0.03); }

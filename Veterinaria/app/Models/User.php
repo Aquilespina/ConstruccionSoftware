@@ -62,5 +62,16 @@ class User extends Authenticatable
         ];
     }
 
+        // Accessor para estado como string
+    public function getEstadoAttribute($value)
+    {
+        return $value == 1 ? 'activo' : 'inactivo';
+    }
+
+    // Mutator para estado como integer
+    public function setEstadoAttribute($value)
+    {
+        $this->attributes['estado'] = $value === 'activo' ? 1 : 0;
+    }
     
 }

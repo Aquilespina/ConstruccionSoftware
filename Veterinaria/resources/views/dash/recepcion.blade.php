@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panel Recepción - VetClinic</title>
-  <link rel="stylesheet" href="css/recepcion.css">
+  <link rel="stylesheet" href="{{ asset('css/recepcion.css') }}">
+  {{-- Stack para estilos específicos por sección (ej: mascotas, propietarios) --}}
+  @stack('styles')
+  <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body>
   <div class="dashboard-container">
@@ -14,55 +17,73 @@
         <div class="logo">🩺</div>
         <div class="sidebar-header-text">
           <div class="brand-name">VetClinic</div>
-          <div class="brand-subtitle">Sistema de Gestión</div>
+          <div class="brand-subtitle">Recepción</div>
         </div>
       </div>
 
       <nav class="sidebar-nav">
-        <button class="nav-item active" data-target="home">
+        <!-- Inicio -->
+        <a href="{{ route('recepcion.home') }}"
+           class="nav-item {{ request()->routeIs('recepcion.home') ? 'active' : '' }}">
           <span class="nav-icon">🏠</span>
           <span class="nav-label">Inicio</span>
-        </button>
-        <button class="nav-item" data-target="usuarios">
-          <span class="nav-icon">👤</span>
-          <span class="nav-label">Usuarios</span>
-        </button>
-        <button class="nav-item" data-target="propietarios">
+        </a>
+
+        <!-- Propietarios (nombre: propietarios.*) -->
+        <a href="{{ route('propietarios.index') }}"
+           class="nav-item {{ request()->routeIs('propietarios.*') ? 'active' : '' }}">
           <span class="nav-icon">👥</span>
           <span class="nav-label">Propietarios</span>
-        </button>
-        <button class="nav-item" data-target="mascotas">
+        </a>
+
+        <!-- Mascotas (nombre: mascotas.*) -->
+        <a href="{{ route('mascotas.index') }}"
+           class="nav-item {{ request()->routeIs('mascotas.*') ? 'active' : '' }}">
           <span class="nav-icon">🐾</span>
           <span class="nav-label">Mascotas</span>
-        </button>
-        <button class="nav-item" data-target="profesionales">
+        </a>
+
+        <!-- Médicos (nombre: recepcion.medicos) -->
+        <a href="{{ route('recepcion.medicos') }}"
+           class="nav-item {{ request()->routeIs('recepcion.medicos') ? 'active' : '' }}">
           <span class="nav-icon">🧑‍⚕️</span>
-          <span class="nav-label">Profesionales</span>
-        </button>
-        <button class="nav-item" data-target="citas">
+          <span class="nav-label">Médicos</span>
+        </a>
+
+        <!-- Citas (nombre: citas.*) -->
+        <a href="{{ route('citas.index') }}"
+           class="nav-item {{ request()->routeIs('citas.*') ? 'active' : '' }}">
           <span class="nav-icon">📅</span>
           <span class="nav-label">Citas</span>
-        </button>
-        <button class="nav-item" data-target="expedientes">
+        </a>
+
+        <!-- Expedientes (nombre: recepcion.expedientes) -->
+        <a href="{{ route('recepcion.expedientes') }}"
+           class="nav-item {{ request()->routeIs('recepcion.expedientes') ? 'active' : '' }}">
           <span class="nav-icon">📄</span>
           <span class="nav-label">Expedientes</span>
-        </button>
-        <button class="nav-item" data-target="recetas">
+        </a>
+
+        <!-- Recetas (nombre: recepcion.recetas) -->
+        <a href="{{ route('recepcion.recetas') }}"
+           class="nav-item {{ request()->routeIs('recepcion.recetas') ? 'active' : '' }}">
           <span class="nav-icon">💊</span>
           <span class="nav-label">Recetas</span>
-        </button>
-        <button class="nav-item" data-target="honorarios">
+        </a>
+
+        <!-- Honorarios (nombre: recepcion.honorarios) -->
+        <a href="{{ route('recepcion.honorarios') }}"
+           class="nav-item {{ request()->routeIs('recepcion.honorarios') ? 'active' : '' }}">
           <span class="nav-icon">💵</span>
           <span class="nav-label">Honorarios</span>
-        </button>
-        <button class="nav-item" data-target="hospitalizaciones">
+        </a>
+
+        <!-- Hospitalizaciones (nombre: recepcion.hospitalizaciones) -->
+        <a href="{{ route('recepcion.hospitalizaciones') }}"
+           class="nav-item {{ request()->routeIs('recepcion.hospitalizaciones') ? 'active' : '' }}">
           <span class="nav-icon">🏥</span>
           <span class="nav-label">Hospitalizaciones</span>
-        </button>
-        <button class="nav-item" data-target="servicios">
-          <span class="nav-icon">✅</span>
-          <span class="nav-label">Catálogo Servicios</span>
-        </button>
+        </a>
       </nav>
 
       <div class="sidebar-footer">
@@ -90,7 +111,13 @@
               <line x1="3" y1="18" x2="21" y2="18"></line>
             </svg>
           </button>
-          <h1 class="page-title" id="pageTitle">Inicio</h1>
+          <h1 class="page-title" id="pageTitle">
+            @hasSection('page-title')
+              @yield('page-title')
+            @else
+              Inicio
+            @endif
+          </h1>
         </div>
 
         <div class="header-right">
@@ -101,146 +128,22 @@
             <input type="text" class="search-input" placeholder="Buscar...">
           </div>
 
-<div class="user-profile">
-    <div class="user-avatar">
-        {{ strtoupper(substr(Auth::user()->nombre_usuario, 0, 2)) }}
-    </div>
-    <div class="user-info">
-        <div class="user-name">{{ Auth::user()->nombre_usuario }}</div>
-        <div class="user-role">{{ ucfirst(Auth::user()->tipo_permiso) }}</div>
-    </div>
-</div>
+          <div class="user-profile">
+            <div class="user-avatar">
+              {{-- Use optional() to avoid errors when no authenticated user is available --}}
+              {{ strtoupper(substr(optional(Auth::user())->nombre_usuario ?? 'US', 0, 2)) }}
+            </div>
+            <div class="user-info">
+              <div class="user-name">{{ optional(Auth::user())->nombre_usuario ?? 'Invitado' }}</div>
+              <div class="user-role">{{ optional(Auth::user())->tipo_permiso ? ucfirst(optional(Auth::user())->tipo_permiso) : 'Usuario' }}</div>
+            </div>
+          </div>
+        </div>
       </header>
 
       <div class="content-area">
-        <!-- Home Module -->
-        <section id="mod-home" class="module active">
-          <div class="welcome-section">
-            <h1 class="welcome-title">Bienvenido al Sistema de Gestión Veterinaria</h1>
-            <p class="welcome-subtitle">Panel de control y resumen de actividades</p>
-          </div>
-
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-header">
-                <h3 class="stat-title">Total Propietarios</h3>
-                <div class="stat-icon icon-blue">👥</div>
-              </div>
-              <div class="stat-value">0</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-header">
-                <h3 class="stat-title">Total Mascotas</h3>
-                <div class="stat-icon icon-green">🐾</div>
-              </div>
-              <div class="stat-value">0</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-header">
-                <h3 class="stat-title">Citas Hoy</h3>
-                <div class="stat-icon icon-orange">📅</div>
-              </div>
-              <div class="stat-value">0</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-header">
-                <h3 class="stat-title">Hospitalizaciones Activas</h3>
-                <div class="stat-icon icon-red">🏥</div>
-              </div>
-              <div class="stat-value">0</div>
-            </div>
-          </div>
-
-          <div class="panels-grid">
-            <div class="panel-card">
-              <div class="panel-header">
-                <h3 class="panel-title">Próximas Citas</h3>
-              </div>
-              <div class="empty-state">
-                <p>No hay citas programadas</p>
-              </div>
-            </div>
-            <div class="panel-card">
-              <div class="panel-header">
-                <h3 class="panel-title">Hospitalizaciones Activas</h3>
-              </div>
-              <div class="empty-state">
-                <p>No hay hospitalizaciones activas</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Other Modules -->
-        <section id="mod-usuarios" class="module">
-          <div class="module-content">
-            <h2 class="module-title">Gestión de Usuarios</h2>
-            <p class="module-message">Módulo en desarrollo - Próximamente</p>
-          </div>
-        </section>
-
-        <section id="mod-propietarios" class="module">
-          <div class="module-content">
-            <h2 class="module-title">Gestión de Propietarios</h2>
-            <p class="module-message">Módulo en desarrollo - Próximamente</p>
-          </div>
-        </section>
-
-        <section id="mod-mascotas" class="module">
-          <div class="module-content">
-            <h2 class="module-title">Gestión de Mascotas</h2>
-            <p class="module-message">Módulo en desarrollo - Próximamente</p>
-          </div>
-        </section>
-
-        <section id="mod-profesionales" class="module">
-          <div class="module-content">
-            <h2 class="module-title">Gestión de Profesionales</h2>
-            <p class="module-message">Módulo en desarrollo - Próximamente</p>
-          </div>
-        </section>
-
-        <section id="mod-citas" class="module">
-          <div class="module-content">
-            <h2 class="module-title">Gestión de Citas</h2>
-            <p class="module-message">Módulo en desarrollo - Próximamente</p>
-          </div>
-        </section>
-
-        <section id="mod-expedientes" class="module">
-          <div class="module-content">
-            <h2 class="module-title">Gestión de Expedientes</h2>
-            <p class="module-message">Módulo en desarrollo - Próximamente</p>
-          </div>
-        </section>
-
-        <section id="mod-recetas" class="module">
-          <div class="module-content">
-            <h2 class="module-title">Gestión de Recetas</h2>
-            <p class="module-message">Módulo en desarrollo - Próximamente</p>
-          </div>
-        </section>
-
-        <section id="mod-honorarios" class="module">
-          <div class="module-content">
-            <h2 class="module-title">Gestión de Honorarios</h2>
-            <p class="module-message">Módulo en desarrollo - Próximamente</p>
-          </div>
-        </section>
-
-        <section id="mod-hospitalizaciones" class="module">
-          <div class="module-content">
-            <h2 class="module-title">Gestión de Hospitalizaciones</h2>
-            <p class="module-message">Módulo en desarrollo - Próximamente</p>
-          </div>
-        </section>
-
-        <section id="mod-servicios" class="module">
-          <div class="module-content">
-            <h2 class="module-title">Catálogo de Servicios</h2>
-            <p class="module-message">Módulo en desarrollo - Próximamente</p>
-          </div>
-        </section>
+        <!-- Contenido dinámico -->
+        @yield('content')
       </div>
     </main>
   </div>

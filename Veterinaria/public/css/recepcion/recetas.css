@@ -1,0 +1,5 @@
+/* Estilos para Recetas */
+#mod-recetas { padding: 16px; }
+.receta-icon { font-size: 18px; }
+.table-container .data-table td .receta-icon { margin-right: 8px; }
+.modal-content { max-width: 800px; }

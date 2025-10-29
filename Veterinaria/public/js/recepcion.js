@@ -93,4 +93,123 @@
         document.querySelectorAll('.stat-value')[2].textContent = stats.citasHoy;
         document.querySelectorAll('.stat-value')[3].textContent = stats.hospitalizaciones;
       }, 1000);
+
+      // Funcionalidades específicas para módulo de médicos
+function initModuloMedicos() {
+    const btnNuevoMedico = document.getElementById('btn-nuevo-medico');
+    if (btnNuevoMedico) {
+        btnNuevoMedico.addEventListener('click', abrirModalNuevoMedico);
+    }
+
+    // Filtros de búsqueda
+    const searchInput = document.getElementById('search-medicos');
+    const filterEspecialidad = document.getElementById('filter-especialidad');
+    const filterEstado = document.getElementById('filter-estado');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', filtrarMedicos);
+    }
+    if (filterEspecialidad) {
+        filterEspecialidad.addEventListener('change', filtrarMedicos);
+    }
+    if (filterEstado) {
+        filterEstado.addEventListener('change', filtrarMedicos);
+    }
+}
+
+function abrirModalNuevoMedico() {
+    const modal = document.getElementById('modal-medico');
+    const titulo = document.getElementById('modal-medico-titulo');
+    const form = document.getElementById('form-medico');
+    
+    titulo.textContent = 'Nuevo Médico';
+    form.reset();
+    modal.style.display = 'flex';
+}
+
+function cerrarModalMedico() {
+    const modal = document.getElementById('modal-medico');
+    modal.style.display = 'none';
+}
+
+function guardarMedico() {
+    const form = document.getElementById('form-medico');
+    const formData = new FormData(form);
+    
+    // Aquí iría la lógica para guardar el médico
+    console.log('Guardando médico:', Object.fromEntries(formData));
+    
+    // Simulación de guardado exitoso
+    alert('Médico guardado correctamente');
+    cerrarModalMedico();
+    // Recargar la tabla de médicos
+}
+
+function editarMedico(id) {
+    const modal = document.getElementById('modal-medico');
+    const titulo = document.getElementById('modal-medico-titulo');
+    const form = document.getElementById('form-medico');
+    
+    titulo.textContent = 'Editar Médico';
+    
+    // Aquí cargaríamos los datos del médico según el ID
+    // Por ahora simulamos datos
+    document.getElementById('medico-nombre').value = 'Dra. Laura Méndez';
+    document.getElementById('medico-especialidad').value = 'cirugia';
+    document.getElementById('medico-email').value = 'laura.mendez@vetclinic.com';
+    document.getElementById('medico-telefono').value = '+1 234 567 890';
+    document.getElementById('medico-cedula').value = 'CP123456';
+    document.getElementById('medico-estado').value = 'activo';
+    
+    modal.style.display = 'flex';
+}
+
+function gestionarHorarios(id) {
+    alert(`Gestionar horarios del médico ID: ${id}`);
+    // Aquí se abriría otro modal o se redirigiría a la gestión de horarios
+}
+
+function filtrarMedicos() {
+    const searchTerm = document.getElementById('search-medicos').value.toLowerCase();
+    const especialidad = document.getElementById('filter-especialidad').value;
+    const estado = document.getElementById('filter-estado').value;
+    
+    const filas = document.querySelectorAll('#tabla-medicos tr');
+    
+    filas.forEach(fila => {
+        const textoFila = fila.textContent.toLowerCase();
+        const especialidadFila = fila.querySelector('.specialty-badge')?.textContent.toLowerCase() || '';
+        const estadoFila = fila.querySelector('.status-badge')?.textContent.toLowerCase() || '';
+        
+        const coincideBusqueda = textoFila.includes(searchTerm);
+        const coincideEspecialidad = !especialidad || especialidadFila.includes(especialidad);
+        const coincideEstado = !estado || estadoFila.includes(estado);
+        
+        if (coincideBusqueda && coincideEspecialidad && coincideEstado) {
+            fila.style.display = '';
+        } else {
+            fila.style.display = 'none';
+        }
     });
+}
+
+// Inicializar módulo de médicos cuando se muestre
+document.addEventListener('DOMContentLoaded', function() {
+    // ... código existente ...
+    
+    // Inicializar módulos específicos cuando se muestren
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                if (mutation.target.id === 'mod-medicos' && mutation.target.classList.contains('active')) {
+                    initModuloMedicos();
+                }
+            }
+        });
+    });
+    
+    observer.observe(document.getElementById('mod-medicos'), {
+        attributes: true,
+        attributeFilter: ['class']
+    });
+});         

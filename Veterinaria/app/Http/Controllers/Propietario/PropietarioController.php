@@ -12,15 +12,9 @@ class PropietarioController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): JsonResponse
+    public function index() 
     {
-        $propietario = Propietario::all();
-        
-        return response()->json([
-            'data' => $propietario,
-            'message' => 'Propietarios listados correctamente',
-            'code' => 200
-        ]);
+           return view('dash.recepcion.propietarios');
     }
 
     /**

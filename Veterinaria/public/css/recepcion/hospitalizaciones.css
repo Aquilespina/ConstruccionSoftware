@@ -1,0 +1,4 @@
+/* Estilos para Hospitalizaciones */
+#mod-hospitalizaciones { padding: 16px; }
+.hospitalizacion-card { background:#fff; border-radius:8px; padding:12px; margin-bottom:12px; border:1px solid #eef2f6 }
+.hospitalizacion-header h3{ margin:0 }

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Cita;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
+use App\Models\Cita\Cita;
 
 class CitaController extends Controller
 {
@@ -12,7 +14,8 @@ class CitaController extends Controller
      */
     public function index()
     {
-        //
+        // Mostrar la vista de gestión de citas
+        return view('dash.recepcion.citas');
     }
 
     /**
@@ -28,7 +31,7 @@ class CitaController extends Controller
      */
     public function store(Request $request)
     {
-        $cita= Event::create(
+        $cita= Cita::create(
             tipo_servicio:$request->tipo_servicio,
             tipo_cita:$request->tipo_cita,
             tarifa:$request->tarifa,
@@ -37,8 +40,13 @@ class CitaController extends Controller
             diagnostico: $request->diagnostico,
             observaciones:$request->observaciones,
             estado:$request->estado,
-        )
-
+        );
+        // devolver respuesta JSON para peticiones AJAX
+        return response()->json([
+            'message' => 'Cita creada correctamente',
+            'code' => 201,
+            'data' => $cita
+        ], 201);
     }
 
     /**
