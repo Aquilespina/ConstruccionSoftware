@@ -1,9 +1,340 @@
-/* Estilos específicos para la sección Mascotas (recepcion/mascotas)
-   Puedes ampliar o sobrescribir reglas del archivo global recepcion.css aquí */
+/* Estilos generales */
+:root {
+  --primary: #059669;
+  --primary-light: #10b981;
+  --primary-dark: #047857;
+  --secondary: #3b82f6;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --success: #10b981;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
 
-#mod-mascotas { padding: 16px; }
-.data-table th, .data-table td { padding: 8px 12px; }
-.pet-avatar { font-size: 20px; }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
 
-/* Ejemplo: destacar la primera fila */
-.table-container .data-table tbody tr:first-child { background: rgba(14,165,233,0.03); }
+body {
+  background-color: var(--gray-50);
+  color: var(--gray-800);
+  line-height: 1.5;
+}
+
+/* SOLUCIÓN: ELIMINAR LAS REGLAS QUE OCULTAN EL MÓDULO */
+/* Estas reglas estaban causando que el contenido no se muestre */
+.module {
+  padding: 1.5rem;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Encabezado del módulo */
+.module-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.module-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.module-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Barra de filtros */
+.filters-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--gray-200);
+}
+
+.search-filter {
+  flex: 1;
+  max-width: 400px;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Botones */
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.625rem 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background-color: white;
+  color: var(--gray-700);
+  border: 1px solid var(--gray-300);
+  border-radius: 0.5rem;
+  padding: 0.625rem 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.btn-secondary:hover {
+  background-color: var(--gray-100);
+  box-shadow: var(--shadow);
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.75rem;
+}
+
+.btn-outline:hover {
+  background-color: var(--primary);
+  color: white;
+}
+
+/* Inputs */
+.search-input, .filter-select, .form-control {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--gray-300);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  background-color: white;
+}
+
+.search-input:focus, .filter-select:focus, .form-control:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+}
+
+/* Tabla */
+.table-container {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--gray-200);
+  overflow: hidden;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  background-color: var(--gray-50);
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--gray-700);
+  border-bottom: 1px solid var(--gray-200);
+  font-size: 0.875rem;
+}
+
+.data-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--gray-200);
+  font-size: 0.875rem;
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table tr:hover {
+  background-color: var(--gray-50);
+}
+
+/* Avatar de mascota */
+.pet-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background-color: #d1fae5;
+  color: var(--primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.125rem;
+  flex-shrink: 0;
+}
+
+/* Modal - este SÍ debe estar oculto inicialmente */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none; /* Correcto - el modal debe empezar oculto */
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1.25rem;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid var(--gray-200);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.modal-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--gray-500);
+  transition: color 0.2s;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  background-color: var(--gray-100);
+  color: var(--gray-700);
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid var(--gray-200);
+}
+
+/* Formularios */
+.form-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  flex: 1;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-weight: 500;
+  color: var(--gray-700);
+  font-size: 0.875rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .module-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .module-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .filters-bar {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .search-filter {
+    max-width: 100%;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .modal-content {
+    margin: 1.25rem;
+  }
+}

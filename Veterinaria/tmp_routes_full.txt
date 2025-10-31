@@ -1,0 +1,76 @@
+
+  GET|HEAD  / .................................................................................................. 
+  GET|HEAD  admin ................................................................................... admin.home
+  GET|HEAD  api/citas .............................................. api.citas.index › Cita\CitaController@index
+  POST      api/citas .............................................. api.citas.store › Cita\CitaController@store
+  GET|HEAD  api/citas/crear ...................................... api.citas.create › Cita\CitaController@create
+  GET|HEAD  api/citas/{id_cita} ...................................... api.citas.show › Cita\CitaController@show
+  PUT       api/citas/{id_cita} .................................. api.citas.update › Cita\CitaController@update
+  DELETE    api/citas/{id_cita} ................................ api.citas.destroy › Cita\CitaController@destroy
+  GET|HEAD  api/citas/{id_cita}/editar ............................... api.citas.edit › Cita\CitaController@edit
+  GET|HEAD  api/mascotas .................................. api.mascotas.index › Mascota\MascotaController@index
+  POST      api/mascotas .................................. api.mascotas.store › Mascota\MascotaController@store
+  GET|HEAD  api/mascotas/crear .......................... api.mascotas.create › Mascota\MascotaController@create
+  GET|HEAD  api/mascotas/{id_mascota} ....................... api.mascotas.show › Mascota\MascotaController@show
+  PUT       api/mascotas/{id_mascota} ................... api.mascotas.update › Mascota\MascotaController@update
+  DELETE    api/mascotas/{id_mascota} ................. api.mascotas.destroy › Mascota\MascotaController@destroy
+  GET|HEAD  api/mascotas/{id_mascota}/editar ................ api.mascotas.edit › Mascota\MascotaController@edit
+  GET|HEAD  api/mascotas/{id_mascota}/historial ......................................... api.mascotas.historial
+  GET|HEAD  api/propietarios .................. api.propietarios.index › Propietario\PropietarioController@index
+  POST      api/propietarios .................. api.propietarios.store › Propietario\PropietarioController@store
+  GET|HEAD  api/propietarios/buscar .......... api.propietarios.search › Propietario\PropietarioController@index
+  GET|HEAD  api/propietarios/crear .......... api.propietarios.create › Propietario\PropietarioController@create
+  GET|HEAD  api/propietarios/{id_propietario} ... api.propietarios.show › Propietario\PropietarioController@show
+  PUT       api/propietarios/{id_propietario} api.propietarios.update › Propietario\PropietarioController@update
+  DELETE    api/propietarios/{id_propietario} api.propietarios.destroy › Propietario\PropietarioController@dest…
+  GET|HEAD  api/usuarios .................................. api.usuarios.index › Usuario\UsuarioController@index
+  POST      api/usuarios .................................. api.usuarios.store › Usuario\UsuarioController@store
+  GET|HEAD  api/usuarios/buscar .......................... api.usuarios.search › Usuario\UsuarioController@index
+  GET|HEAD  api/usuarios/crear .......................... api.usuarios.create › Usuario\UsuarioController@create
+  GET|HEAD  api/usuarios/{id_usuario} ....................... api.usuarios.show › Usuario\UsuarioController@show
+  PUT       api/usuarios/{id_usuario} ................... api.usuarios.update › Usuario\UsuarioController@update
+  DELETE    api/usuarios/{id_usuario} ................. api.usuarios.destroy › Usuario\UsuarioController@destroy
+  GET|HEAD  login ................................................... login › Auth\LoginController@showLoginForm
+  POST      login ...................................................... login.post › Auth\LoginController@login
+  POST      logout ........................................................ logout › Auth\LoginController@logout
+  GET|HEAD  medico ................................................................................. medico.home
+  GET|HEAD  recepcion ........................................................................... recepcion.home
+  GET|HEAD  recepcion/citas ............................................ citas.index › Cita\CitaController@index
+  POST      recepcion/citas ............................................ citas.store › Cita\CitaController@store
+  GET|HEAD  recepcion/citas/crear .................................... citas.create › Cita\CitaController@create
+  GET|HEAD  recepcion/citas/{id_cita} .................................... citas.show › Cita\CitaController@show
+  PUT       recepcion/citas/{id_cita} ................................ citas.update › Cita\CitaController@update
+  DELETE    recepcion/citas/{id_cita} .............................. citas.destroy › Cita\CitaController@destroy
+  GET|HEAD  recepcion/citas/{id_cita}/editar ............................. citas.edit › Cita\CitaController@edit
+  GET|HEAD  recepcion/expedientes ........................................................ recepcion.expedientes
+  GET|HEAD  recepcion/honorarios .......................................................... recepcion.honorarios
+  GET|HEAD  recepcion/hospitalizaciones ............................................ recepcion.hospitalizaciones
+  GET|HEAD  recepcion/mascotas ................................ mascotas.index › Mascota\MascotaController@index
+  POST      recepcion/mascotas ................................ mascotas.store › Mascota\MascotaController@store
+  GET|HEAD  recepcion/mascotas/crear ........................ mascotas.create › Mascota\MascotaController@create
+  GET|HEAD  recepcion/mascotas/{id_mascota} ..................... mascotas.show › Mascota\MascotaController@show
+  PUT       recepcion/mascotas/{id_mascota} ................. mascotas.update › Mascota\MascotaController@update
+  DELETE    recepcion/mascotas/{id_mascota} ............... mascotas.destroy › Mascota\MascotaController@destroy
+  GET|HEAD  recepcion/mascotas/{id_mascota}/editar .............. mascotas.edit › Mascota\MascotaController@edit
+  GET|HEAD  recepcion/mascotas/{id_mascota}/historial ....................................... mascotas.historial
+  GET|HEAD  recepcion/medicos ................................................................ recepcion.medicos
+  GET|HEAD  recepcion/propietarios ................ propietarios.index › Propietario\PropietarioController@index
+  POST      recepcion/propietarios ................ propietarios.store › Propietario\PropietarioController@store
+  GET|HEAD  recepcion/propietarios/buscar ........ propietarios.search › Propietario\PropietarioController@index
+  GET|HEAD  recepcion/propietarios/crear ........ propietarios.create › Propietario\PropietarioController@create
+  GET|HEAD  recepcion/propietarios/{id_propietario} . propietarios.show › Propietario\PropietarioController@show
+  PUT       recepcion/propietarios/{id_propietario} propietarios.update › Propietario\PropietarioController@upd…
+  DELETE    recepcion/propietarios/{id_propietario} propietarios.destroy › Propietario\PropietarioController@de…
+  GET|HEAD  recepcion/recetas ................................................................ recepcion.recetas
+  GET|HEAD  storage/{path} ....................................................................... storage.local
+  GET|HEAD  up ................................................................................................. 
+  GET|HEAD  usuarios .......................................... usuarios.index › Usuario\UsuarioController@index
+  POST      usuarios .......................................... usuarios.store › Usuario\UsuarioController@store
+  GET|HEAD  usuarios/buscar .................................. usuarios.search › Usuario\UsuarioController@index
+  GET|HEAD  usuarios/crear .................................. usuarios.create › Usuario\UsuarioController@create
+  GET|HEAD  usuarios/{id_usuario} ............................... usuarios.show › Usuario\UsuarioController@show
+  PUT       usuarios/{id_usuario} ........................... usuarios.update › Usuario\UsuarioController@update
+  DELETE    usuarios/{id_usuario} ......................... usuarios.destroy › Usuario\UsuarioController@destroy
+
+                                                                                             Showing [72] routes
+

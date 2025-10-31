@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
-
+use App\Http\Controllers\Profesional\ProfesionalController;
 Route::get('/', function () {
     return redirect()->route('login');
 });
@@ -41,17 +41,22 @@ Route::middleware(['auth', 'role:recepcionista'])->group(function () {
 
         // Rutas para mascotas
         Route::prefix('mascotas')->name('mascotas.')->group(function () {
+            // Ruta principal del módulo mascotas (vista)
             Route::get('/', function () {
                 return view('dash.recepcion.mascotas');
             })->name('index');
+
+            // Incluir definiciones REST/CRUD específicas (index.php dentro de routes/mascotas)
             require __DIR__.'/mascotas/index.php';
         });
 
-        // Rutas para médicos
-        Route::get('/medicos', function () {
-            return view('dash.recepcion.medicos');
-        })->name('recepcion.medicos');
+        // Rutas para profesionales - CORREGIDO
+        Route::prefix('profesionales')->name('profesionales.')->group(function () {
+            Route::get('/', [ProfesionalController::class, 'index'])->name('index');
 
+            // Incluir definiciones REST/CRUD específicas
+            require __DIR__.'/profesionales/index.php';
+        });
         // Rutas para citas
         Route::prefix('citas')->name('citas.')->group(function () {
             require __DIR__.'/citas/index.php';
@@ -74,4 +79,7 @@ Route::middleware(['auth', 'role:recepcionista'])->group(function () {
             return view('dash.recepcion.hospitalizaciones');
         })->name('recepcion.hospitalizaciones');
     });
+     
+    
+
 });

@@ -20,4 +20,9 @@ Route::group([], function () {
     Route::prefix('usuarios')->name('api.usuarios.')->group(function () {
         require __DIR__.'/usuarios/index.php';
     });
+
+    // Grupo API para profesionales - MANTENIENDO EL FORMATO REQUIRE
+    Route::prefix('profesionales')->name('api.profesionales.')->group(function () {
+        require __DIR__.'/profesionales/index.php';
+    });
 });

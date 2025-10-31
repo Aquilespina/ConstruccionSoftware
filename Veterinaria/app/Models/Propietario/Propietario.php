@@ -4,6 +4,8 @@ namespace App\Models\Propietario;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Mascota\Mascota;
 
 class Propietario extends Model
 {
@@ -16,16 +18,18 @@ protected $keyType = 'string';
 public $incrementing = false;
 public $timestamps = false;
 
-protected $guarded = [];
+protected $fillable = [
+    'nombre',
+    'telefono',
+    'direccion',
+    'correo_electronico',
+    'fecha_registro',
+];
 
+    public function mascotas(): HasMany
+    {
+        return $this->hasMany(Mascota::class, 'id_propietario');
+    }
 
-public static function boot()
-{
-    parent::boot();
-
-    static::creating(function ($propietario){
-        $propietario->id_propietario= sha1(microtime());
-    });
-}
 
 }

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use App\Models\Cita\Cita;
+use App\Models\Mascota\Mascota;
+use App\Models\Profesional;
 
 class CitaController extends Controller
 {
@@ -14,8 +16,26 @@ class CitaController extends Controller
      */
     public function index()
     {
-        // Mostrar la vista de gestión de citas
-        return view('dash.recepcion.citas');
+        // Cargar listas para selects del formulario
+        $mascotas = Mascota::orderBy('nombre')->get(['id_mascota','nombre']);
+        $profesionales = Profesional::orderBy('nombre')->get(['rfc','nombre']);
+
+        // Cargar citas desde la BD categorizadas
+        $hoy = Carbon::today();
+
+        $citasQuery = Cita::with(['mascota.propietario', 'profesional'])
+            ->orderBy('fecha')
+            ->orderBy('horario');
+
+        $citasTodas = (clone $citasQuery)->get();
+        $citasHoy = (clone $citasQuery)->whereDate('fecha', $hoy)->get();
+        $citasProximas = (clone $citasQuery)->whereDate('fecha', '>', $hoy)->get();
+        $citasPasadas = (clone $citasQuery)->whereDate('fecha', '<', $hoy)->get();
+
+        return view('dash.recepcion.citas', compact(
+            'mascotas', 'profesionales',
+            'citasHoy', 'citasProximas', 'citasPasadas', 'citasTodas'
+        ));
     }
 
     /**
@@ -31,20 +51,28 @@ class CitaController extends Controller
      */
     public function store(Request $request)
     {
-        $cita= Cita::create(
-            tipo_servicio:$request->tipo_servicio,
-            tipo_cita:$request->tipo_cita,
-            tarifa:$request->tarifa,
-            peso_mascota: $request->peso_mascota,
-            fecha: Carbon::parse($request->fecha),
-            diagnostico: $request->diagnostico,
-            observaciones:$request->observaciones,
-            estado:$request->estado,
-        );
-        // devolver respuesta JSON para peticiones AJAX
+        // Validación básica según esquema
+        $data = $request->validate([
+            'id_mascota' => 'required|exists:mascota,id_mascota',
+            'rfc_profesional' => 'required|exists:profesional,rfc',
+            'tipo_servicio' => 'nullable|string|max:100',
+            'tipo_cita' => 'required|in:Consulta,Urgencia,Cirugía,Estética',
+            'tarifa' => 'nullable|numeric|min:0',
+            'peso_mascota' => 'nullable|numeric|min:0',
+            'fecha' => 'required|date',
+            'horario' => 'required|date_format:H:i',
+            'diagnostico' => 'nullable|string',
+            'observaciones' => 'nullable|string',
+            'estado' => 'required|in:Programada,Completada,Cancelada',
+        ]);
+
+        $data['fecha'] = Carbon::parse($data['fecha'])->format('Y-m-d');
+
+        $cita = Cita::create($data);
+
         return response()->json([
+            'success' => true,
             'message' => 'Cita creada correctamente',
-            'code' => 201,
             'data' => $cita
         ], 201);
     }
@@ -54,7 +82,27 @@ class CitaController extends Controller
      */
     public function show(string $id)
     {
-        //
+        try {
+            $cita = Cita::with(['mascota.propietario', 'profesional'])->find($id);
+
+            if (!$cita) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cita no encontrada'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $cita,
+                'message' => 'Cita obtenida correctamente'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener la cita: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

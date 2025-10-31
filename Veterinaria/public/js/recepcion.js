@@ -45,22 +45,29 @@
         overlay.classList.remove('active');
       });
       
-      // Navigation between modules
+      // Navigation between modules (client-side: prevent full page navigation only for SPA targets)
       navItems.forEach(item => {
-        item.addEventListener('click', function() {
+        item.addEventListener('click', function(event) {
           const target = this.getAttribute('data-target');
-          
+
+          // If there's no data-target, allow normal anchor navigation (do not preventDefault)
+          if (!target) return; // nothing to do
+
+          // Prevent default only when we handle SPA-style switching
+          event.preventDefault();
+
           // Update active nav item
           navItems.forEach(nav => nav.classList.remove('active'));
           this.classList.add('active');
-          
+
           // Show target module
           modules.forEach(module => module.classList.remove('active'));
-          document.getElementById(`mod-${target}`).classList.add('active');
-          
+          const targetEl = document.getElementById(`mod-${target}`);
+          if (targetEl) targetEl.classList.add('active');
+
           // Update page title
-          pageTitle.textContent = moduleTitles[target];
-          
+          pageTitle.textContent = moduleTitles[target] || pageTitle.textContent;
+
           // On mobile, close sidebar after selection
           if (window.innerWidth <= 1024) {
             sidebar.classList.remove('open');
@@ -116,6 +123,8 @@ function initModuloMedicos() {
         filterEstado.addEventListener('change', filtrarMedicos);
     }
 }
+
+});
 
 function abrirModalNuevoMedico() {
     const modal = document.getElementById('modal-medico');
@@ -194,22 +203,21 @@ function filtrarMedicos() {
 }
 
 // Inicializar módulo de médicos cuando se muestre
-document.addEventListener('DOMContentLoaded', function() {
-    // ... código existente ...
-    
-    // Inicializar módulos específicos cuando se muestren
-    const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                if (mutation.target.id === 'mod-medicos' && mutation.target.classList.contains('active')) {
-                    initModuloMedicos();
-                }
-            }
-        });
-    });
-    
-    observer.observe(document.getElementById('mod-medicos'), {
-        attributes: true,
-        attributeFilter: ['class']
-    });
-});         
+// Inicializar módulos específicos cuando se muestren
+const observer = new MutationObserver(function(mutations) {
+  mutations.forEach(function(mutation) {
+    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+      if (mutation.target.id === 'mod-medicos' && mutation.target.classList.contains('active')) {
+        initModuloMedicos();
+      }
+    }
+  });
+});
+
+const modMedicosEl = document.getElementById('mod-medicos');
+if (modMedicosEl) {
+  observer.observe(modMedicosEl, {
+    attributes: true,
+    attributeFilter: ['class']
+  });
+}
