@@ -9,27 +9,31 @@ use App\Models\Mascota\Mascota;
 
 class Propietario extends Model
 {
-    //
- use Hasfactory;    
+    use HasFactory;
 
-protected $table = 'propietario';
-protected $primaryKey= 'id_propietario';
-protected $keyType = 'string';
-public $incrementing = false;
-public $timestamps = false;
+    protected $table = 'propietario';
+    protected $primaryKey = 'id_propietario';
+    // id_propietario es autoincrement BIGINT según la migración
+    public $incrementing = true;
+    protected $keyType = 'int';
+    public $timestamps = true;
 
-protected $fillable = [
-    'nombre',
-    'telefono',
-    'direccion',
-    'correo_electronico',
-    'fecha_registro',
-];
+    protected $fillable = [
+        'nombre',
+        'telefono',
+        'direccion',
+        'correo_electronico',
+        'fecha_registro',
+    ];
 
     public function mascotas(): HasMany
     {
-        return $this->hasMany(Mascota::class, 'id_propietario');
+        return $this->hasMany(Mascota::class, 'id_propietario', 'id_propietario');
     }
 
-
+    // Accesor para nombre completo; por ahora devuelve 'nombre'
+    public function getNombreCompletoAttribute(): string
+    {
+        return (string) ($this->nombre ?? '');
+    }
 }

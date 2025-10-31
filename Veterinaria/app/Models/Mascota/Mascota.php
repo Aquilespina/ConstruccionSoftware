@@ -5,7 +5,9 @@ namespace App\Models\Mascota;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Propietario\Propietario;
+use App\Models\Receta\Receta;
 
 class Mascota extends Model
 {
@@ -22,6 +24,11 @@ class Mascota extends Model
 public function propietario(): BelongsTo
     {
         return $this->belongsTo(Propietario::class, 'id_propietario');
+    }
+
+        public function recetas()
+    {
+        return $this->hasMany(Receta::class, 'id_mascota');
     }
 
 

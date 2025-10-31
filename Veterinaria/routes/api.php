@@ -25,4 +25,8 @@ Route::group([], function () {
     Route::prefix('profesionales')->name('api.profesionales.')->group(function () {
         require __DIR__.'/profesionales/index.php';
     });
+    // Grupo API para recetas
+    Route::prefix('recetas')->name('api.recetas.')->group(function () {
+        require __DIR__.'/recetas/index.php';
+    });
 });

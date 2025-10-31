@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Profesional\ProfesionalController;
+use App\Models\Profesional;
+use App\Models\Mascota\Mascota;
 Route::get('/', function () {
     return redirect()->route('login');
 });
@@ -62,13 +64,17 @@ Route::middleware(['auth', 'role:recepcionista'])->group(function () {
             require __DIR__.'/citas/index.php';
         });
 
-        // Agrega más rutas según necesites
-        Route::get('/expedientes', function () {
-            return view('dash.recepcion.expedientes');
-        })->name('recepcion.expedientes');
+        // Expedientes (agregado desde citas/mascotas/propietarios)
+        Route::get('/expedientes', [\App\Http\Controllers\Recepcion\ExpedienteController::class, 'index'])
+            ->name('recepcion.expedientes');
 
         Route::get('/recetas', function () {
-            return view('dash.recepcion.recetas');
+            // Cargar listas requeridas por la vista de recetas
+            $medicos = Profesional::orderBy('nombre')->get(['rfc as id', 'nombre', 'especialidad']);
+            $mascotas = Mascota::with('propietario')
+                ->orderBy('nombre')
+                ->get(['id_mascota as id', 'nombre', 'especie', 'id_propietario']);
+            return view('dash.recepcion.recetas', compact('medicos','mascotas'));
         })->name('recepcion.recetas');
 
         Route::get('/honorarios', function () {
