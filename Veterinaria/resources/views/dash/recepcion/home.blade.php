@@ -93,48 +93,54 @@
 </section>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Simular carga de datos
-    setTimeout(() => {
-        document.getElementById('citas-hoy').textContent = '8';
-        document.getElementById('pacientes-nuevos').textContent = '12';
-        document.getElementById('consultas-pendientes').textContent = '3';
-        document.getElementById('hospitalizaciones').textContent = '2';
-        
-        // Cargar próximas citas
-        const citasContainer = document.getElementById('proximas-citas');
-        citasContainer.innerHTML = `
-            <div class="cita-item">
-                <div class="cita-time">09:00 AM</div>
-                <div class="cita-info">
-                    <div class="cita-paciente">Max - Golden Retriever</div>
-                    <div class="cita-propietario">María Rodríguez</div>
-                </div>
-                <span class="status-badge status-confirmed">Confirmada</span>
-            </div>
-            <div class="cita-item">
-                <div class="cita-time">10:30 AM</div>
-                <div class="cita-info">
-                    <div class="cita-paciente">Luna - Siames</div>
-                    <div class="cita-propietario">Carlos Pérez</div>
-                </div>
-                <span class="status-badge status-pending">Pendiente</span>
-            </div>
-        `;
-        
-        // Cargar pacientes en espera
-        const esperaContainer = document.getElementById('pacientes-espera');
-        esperaContainer.innerHTML = `
-            <div class="cita-item">
-                <div class="cita-time">Llegó hace 5 min</div>
-                <div class="cita-info">
-                    <div class="cita-paciente">Rocky - Bulldog</div>
-                    <div class="cita-propietario">Luis Martínez</div>
-                </div>
-                <span class="status-badge status-pending">En espera</span>
-            </div>
-        `;
-    }, 1000);
+document.addEventListener('DOMContentLoaded', async function() {
+  try {
+    const resp = await fetch('/api/dashboard/recepcion', { headers: { 'Accept': 'application/json' } });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+
+    // Stats
+    document.getElementById('citas-hoy').textContent = data.citas_hoy ?? 0;
+    document.getElementById('pacientes-nuevos').textContent = data.pacientes_nuevos ?? 0;
+    document.getElementById('consultas-pendientes').textContent = data.consultas_pendientes ?? 0;
+    document.getElementById('hospitalizaciones').textContent = data.hospitalizaciones ?? 0;
+
+    // Próximas citas
+    const citasContainer = document.getElementById('proximas-citas');
+    if (Array.isArray(data.proximas_citas) && data.proximas_citas.length) {
+      citasContainer.innerHTML = data.proximas_citas.map(c => `
+        <div class="cita-item">
+          <div class="cita-time">${(c.hora || '').slice(0,5)}</div>
+          <div class="cita-info">
+            <div class="cita-paciente">${c.paciente || '-'}</div>
+            <div class="cita-propietario">${c.propietario || '-'}</div>
+          </div>
+          <span class="status-badge ${c.estado === 'Completada' ? 'status-completed' : (c.estado === 'Cancelada' ? 'status-expired' : 'status-pending')}">${c.estado || ''}</span>
+        </div>
+      `).join('');
+    } else {
+      citasContainer.innerHTML = `<div class="empty-state"><p>No hay citas próximas</p></div>`;
+    }
+
+    // Pacientes en espera
+    const esperaContainer = document.getElementById('pacientes-espera');
+    if (Array.isArray(data.pacientes_espera) && data.pacientes_espera.length) {
+      esperaContainer.innerHTML = data.pacientes_espera.map(e => `
+        <div class="cita-item">
+          <div class="cita-time">${(e.llego || '').slice(0,5)}</div>
+          <div class="cita-info">
+            <div class="cita-paciente">${e.paciente || '-'}</div>
+            <div class="cita-propietario">${e.propietario || '-'}</div>
+          </div>
+          <span class="status-badge status-pending">${e.estado || 'En espera'}</span>
+        </div>
+      `).join('');
+    } else {
+      esperaContainer.innerHTML = `<div class="empty-state"><p>No hay pacientes en espera</p></div>`;
+    }
+  } catch (e) {
+    console.error('Error cargando dashboard:', e);
+  }
 });
 </script>
 @endsection

@@ -1,5 +1,6 @@
 <?php
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Recepcion\DashboardController;
 
 Route::group([], function () {
     // Grupo API para mascotas
@@ -29,4 +30,7 @@ Route::group([], function () {
     Route::prefix('recetas')->name('api.recetas.')->group(function () {
         require __DIR__.'/recetas/index.php';
     });
+
+    // Dashboard de recepción
+    Route::get('/dashboard/recepcion', [DashboardController::class, 'stats'])->name('api.dashboard.recepcion');
 });

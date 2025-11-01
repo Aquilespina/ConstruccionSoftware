@@ -38,6 +38,8 @@
       }
     }
   </script>
+  <!-- CSRF token para solicitudes JS si fueran necesarias en esta vista -->
+  <meta name="csrf-token" content="{{ csrf_token() }}" />
 </head>
 
 <body class="m-0 font-sans bg-gradient-to-br from-vet-50 via-white to-vet-100 relative overflow-x-hidden">
