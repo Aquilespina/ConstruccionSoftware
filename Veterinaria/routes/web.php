@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Profesional\ProfesionalController;
 use App\Models\Profesional;
@@ -13,6 +14,29 @@ Route::get('/', function () {
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.post');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+
+// Healthcheck simple (no toca la base de datos)
+Route::get('/health', function () {
+    return response()->view('health', [
+        'app_name' => config('app.name'),
+        'app_env' => config('app.env'),
+        'app_url' => config('app.url'),
+        'php_version' => PHP_VERSION,
+        'laravel_version' => app()->version(),
+    ]);
+});
+
+// Ping a la BD (solo si DB_PING=true en variables de entorno)
+if (env('DB_PING', false)) {
+    Route::get('/db-ping', function () {
+        try {
+            DB::select('select 1');
+            return response('ok', 200);
+        } catch (\Throwable $e) {
+            return response('error: '.$e->getMessage(), 500);
+        }
+    });
+}
 
 // Dashboards por rol
 Route::middleware(['auth', 'role:administrador'])->group(function () {
