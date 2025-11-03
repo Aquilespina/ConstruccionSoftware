@@ -1,13 +1,21 @@
-# Nixpacks config for Railway (Laravel in subfolder)
-# This keeps Composer from installing dev packages (Pest/PHPUnit) on PHP 8.2
-# and sets a predictable PHP/Node toolchain.
+[phases.setup]
+nixPkgs = [
+    "php83",
+    "php83.extensions.curl",
+    "php83.extensions.gd", 
+    "php83.extensions.openssl",
+    "php83.extensions.mbstring",
+    "php83.extensions.pdo_pgsql",
+    "php83.extensions.bcmath",
+    "php83.extensions.xml",
+    "php83.extensions.zip",
+    "php83.extensions.sodium"
+]
 
-[variables]
-COMPOSER_NO_DEV = "1"
-NIXPACKS_PHP_VERSION = "8.2"
-NIXPACKS_NODE_VERSION = "20"
-# Enable Postgres extension (needed later for Neon)
-PHP_EXTENSIONS = "pdo_pgsql,openssl,mbstring,exif,pcntl,bcmath,gd"
+[phases.build]
+cmds = [
+    "composer install --optimize-autoloader --no-scripts --no-interaction"
+]
 
-[start]
+[phases.start]
 cmd = "php artisan serve --host 0.0.0.0 --port $PORT"
