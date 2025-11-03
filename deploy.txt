@@ -1,0 +1,182 @@
+Perfecto—te dejo un paso a paso claro para desplegar tu Laravel (carpeta Veterinaria) en Railway usando Neon (Postgres), incluyendo monorepo, build con Vite, migraciones y variables.
+
+Panorama rápido
+Fuente: monorepo, raíz del proyecto Laravel en Veterinaria.
+DB: Neon (PostgreSQL) con SSL obligatorio.
+Railway: usa Nixpacks (sin Docker) con:
+Build Command: composer install + build de Vite
+Start Command: php artisan serve (suficiente para el ejercicio)
+Post-deploy Hook: migrate + storage:link
+Si luego quieres un setup productivo con Nginx/PHP-FPM o Docker, te lo preparo.
+
+1) Prepara lo mínimo local (1 vez)
+Asegúrate de tener la app funcionando localmente con PHP 8.2, Composer y Node 18+.
+Genera tu APP_KEY (si no está en .env):
+pwsh:
+
+php artisan key:generate --show
+Copia el valor (ej: base64:xxxx) para usarlo como APP_KEY en Railway.
+Opcional (si prefieres no compilar assets en Railway): construye Vite y confirma que public/build queda con assets.
+
+npm cinpm run build
+2) Crea la base de datos en Neon
+Regístrate en Neon (gratis) y crea un nuevo proyecto PostgreSQL.
+En la pestaña “Connection Details”:
+Usa “Direct connection” (no pooled) para simplificar.
+Copia host, port, database, user y password.
+Asegúrate que SSL esté habilitado (Neon lo requiere). Anota que usaremos DB_SSLMODE=require.
+(Opcional) Crea un usuario y base dedicados para tu entorno.
+Variables que vas a usar:
+
+DB_CONNECTION=pgsql
+DB_HOST=… (de Neon)
+DB_PORT=5432
+DB_DATABASE=… (de Neon)
+DB_USERNAME=… (de Neon)
+DB_PASSWORD=… (de Neon)
+DB_SSLMODE=require
+3) Conecta tu repo a Railway (monorepo)
+Crea cuenta en Railway y haz “New Project” → “Deploy from GitHub”.
+Selecciona tu repo (donde está ConstruccionSoftware).
+MUY IMPORTANTE (monorepo): en “Settings” de tu Service, establece “Root Directory” a:
+Veterinaria
+Esto hace que Railway construya justamente tu app Laravel.
+4) Configura variables de entorno en Railway
+En Service → Variables, agrega:
+
+Aplicación:
+
+APP_ENV=production
+APP_DEBUG=false
+APP_KEY=base64:… (el que generaste)
+APP_URL=https://<tu-subdominio>.up.railway.app
+ASSET_URL=${APP_URL} (opcional, ayuda con assets de Vite)
+LOG_CHANNEL=stderr
+LOG_LEVEL=info
+SESSION_DRIVER=cookie
+SESSION_SECURE_COOKIE=true
+SESSION_LIFETIME=120
+CACHE_DRIVER=file (para el ejercicio está ok)
+QUEUE_CONNECTION=sync (rápido para demo)
+TZ=America/Mexico_City (o tu zona)
+Base de datos (de Neon):
+
+DB_CONNECTION=pgsql
+DB_HOST=…
+DB_PORT=5432
+DB_DATABASE=…
+DB_USERNAME=…
+DB_PASSWORD=…
+DB_SSLMODE=require
+PHP/Nixpacks (para asegurar extensión de Postgres):
+
+PHP_EXTENSIONS=pdo_pgsql,openssl,mbstring,exif,pcntl,bcmath,gd
+Node (si compilarás Vite en Railway):
+
+NIXPACKS_NODE_VERSION=20
+Si usas Vite y variables VITE_…, agrégalas aquí también.
+
+5) Configura comandos de Build / Start / Post-Deploy
+En Service → Settings:
+
+Build Command:
+
+
+composer install --no-dev --optimize-autoloader && php artisan config:clear && npm ci && npm run build
+Nota: si ya comiteaste public/build, puedes omitir npm ci && npm run build.
+
+Start Command (para el ejercicio: simple y suficiente):
+
+
+php artisan serve --host 0.0.0.0 --port $PORT
+Esto usa el servidor embebido de PHP; para producción real, mejor Nginx + PHP-FPM (te doy Dockerfile si lo quieres).
+
+Post-deploy (Hooks → Post-deploy Command):
+
+
+php artisan migrate --force && php artisan storage:link || true
+--force permite migrar en producción.
+storage:link crea el symlink de public/storage. El || true evita fallar si ya existe.
+6) Despliega
+Trigger “Deploy” en Railway. Observa logs:
+Composer instala deps.
+Node compila Vite (si lo configuraste).
+Post-deploy corre migraciones y storage:link.
+Cuando salga “Running”, abre la URL pública.
+7) Verifica
+Homepage responde sin errores.
+Consola del navegador: assets de Vite cargan desde public/build.
+Crea un usuario o prueba login. Si ves 419, revisa la sección de troubleshooting abajo.
+Si tienes seeders:
+Puedes correr manual en “Shell”:
+
+php artisan db:seed --force
+8) Variables exactas de ejemplo (rellena con tus valores)
+APP_ENV=production
+
+APP_DEBUG=false
+
+APP_KEY=base64:xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+APP_URL=https://tu-app.up.railway.app
+
+ASSET_URL=https://tu-app.up.railway.app
+
+LOG_CHANNEL=stderr
+
+LOG_LEVEL=info
+
+SESSION_DRIVER=cookie
+
+SESSION_SECURE_COOKIE=true
+
+CACHE_DRIVER=file
+
+QUEUE_CONNECTION=sync
+
+DB_CONNECTION=pgsql
+
+DB_HOST=ep-…-aws-…-…-neon.tech
+
+DB_PORT=5432
+
+DB_DATABASE=neondb
+
+DB_USERNAME=usuario
+
+DB_PASSWORD=******
+
+DB_SSLMODE=require
+
+PHP_EXTENSIONS=pdo_pgsql,openssl,mbstring,exif,pcntl,bcmath,gd
+
+NIXPACKS_NODE_VERSION=20
+
+9) Opcional: Procfile mínimo
+Si prefieres, añade un Procfile en el root de la app (en tu caso en Veterinaria):
+
+
+web: php artisan serve --host 0.0.0.0 --port $PORT
+Railway Nixpacks lo respetará como “Start Command”.
+
+10) Troubleshooting rápido
+419 (CSRF/Sesión) al login:
+Revisa APP_URL exacto (https y dominio correcto).
+Usa SESSION_DRIVER=cookie y SESSION_SECURE_COOKIE=true (en Railway es https).
+Limpia caches si cambiaste variables: en Shell
+
+php artisan optimize:clear
+Error de conexión a DB (SSL o Driver):
+Asegura DB_SSLMODE=require.
+Verifica que PHP tenga pdo_pgsql (set PHP_EXTENSIONS=pdo_pgsql y re-deploy).
+Assets no cargan:
+Si no comiteaste public/build, asegúrate de ejecutar npm ci && npm run build en Build Command.
+Verifica ASSET_URL y APP_URL correctos.
+Permisos/Storage:
+Ejecuta manualmente: php artisan storage:link.
+Ver logs en Railway:
+Service → Deployments → Logs para cada deploy, y Runtime Logs para la app.
+¿Quieres la versión con Nginx + PHP-FPM (Docker)?
+Para un entorno más “producción”, te preparo un Dockerfile multi-stage (Node build + PHP-FPM + Nginx) y su nginx.conf. Dímelo y lo agrego al repo con los hooks de migración listos.
+
+¿Lo probamos ya? Si me confirmas que conectaste GitHub y quieres compilar assets en Railway, puedo añadir (yo) un Procfile y ajustar un README-deploy.md en tu repo para dejarlo listísimo.
