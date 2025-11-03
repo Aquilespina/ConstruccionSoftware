@@ -41,7 +41,7 @@ class MascotaController extends Controller
         'historial_medico' => 'nullable|string',
         'id_propietario' => 'required|exists:propietario,id_propietario',
     ]);
-    dd( $validated);
+
 
     $mascota = Mascota::create($validated);
 
