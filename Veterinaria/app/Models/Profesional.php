@@ -43,4 +43,23 @@ class Profesional extends Model
     {
         return $query->where('especialidad', $especialidad);
     }
+
+    /**
+     * Getter estático para obtener médicos activos
+     */
+    public static function getMedicosActivos()
+    {
+        return self::activo()
+            ->select('rfc', 'nombre', 'especialidad')
+            ->orderBy('nombre')
+            ->get()
+            ->map(function ($medico) {
+                return [
+                    'id' => $medico->rfc,
+                    'nombre' => $medico->nombre,
+                    'especialidad' => $medico->especialidad,
+                    'display_name' => $medico->nombre . ' - ' . $medico->especialidad
+                ];
+            });
+    }
 }

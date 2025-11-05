@@ -35,9 +35,30 @@ public function propietario(): BelongsTo
 
 
 
+        /**
+     * Getter estático para obtener todas las mascotas con propietarios
+     */
+    public static function getMascotasConPropietarios()
+    {
+        return self::with('propietario')
+            ->select('id_mascota', 'nombre', 'especie', 'raza', 'id_propietario')
+            ->orderBy('nombre')
+            ->get()
+            ->map(function ($mascota) {
+                return [
+                    'id' => $mascota->id_mascota,
+                    'nombre' => $mascota->nombre,
+                    'especie' => $mascota->especie,
+                    'raza' => $mascota->raza ?? '',
+                    'propietario_nombre' => $mascota->propietario->nombre ?? 'Sin propietario',
+                    'display_name' => $mascota->nombre . ' - ' . ($mascota->propietario->nombre ?? 'Sin propietario')
+                ];
+            });
+    }
+
     public function getPropietarios()
-{
-    $propietarios = Propietario::select('id', 'nombre')->get();
-    return response()->json($propietarios);
-}
+    {
+        $propietarios = Propietario::select('id', 'nombre')->get();
+        return response()->json($propietarios);
+    }
 }

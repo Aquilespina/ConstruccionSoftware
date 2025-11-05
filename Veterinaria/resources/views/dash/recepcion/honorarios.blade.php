@@ -2,196 +2,318 @@
 @section('page-title', 'Honorarios')
 @push('styles')
   <link rel="stylesheet" href="{{ asset('css/recepcion/honorarios.css') }}">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
 @endpush
 @section('content')
 <section id="mod-honorarios" class="module active">
-  <div class="module-header">
-    <h2 class="module-title">Gestión de Honorarios</h2>
-    <div class="module-actions">
-      <button class="btn-primary" id="btn-nuevo-pago">Registrar Pago</button>
-      <button class="btn-secondary">Exportar Reporte</button>
+    <div class="module-header">
+        <h2 class="module-title">Gestión de Honorarios</h2>
+        <div class="module-actions">
+            <button class="btn-primary" id="btn-nuevo-honorario">
+                <span class="btn-icon">+</span>
+                Nuevo Honorario
+            </button>
+            <button class="btn-secondary">
+                <span class="btn-icon">📊</span>
+                Reporte General
+            </button>
+        </div>
     </div>
-  </div>
-  
-  <div class="stats-grid" style="margin-bottom: 24px;">
-    <div class="stat-card">
-      <div class="stat-header">
-        <h3 class="stat-title">Ingresos del Mes</h3>
-        <div class="stat-icon icon-green">💰</div>
-      </div>
-      <div class="stat-value">$24,580</div>
-      <div class="stat-change">+12% vs mes anterior</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-header">
-        <h3 class="stat-title">Pagos Pendientes</h3>
-        <div class="stat-icon icon-orange">⏳</div>
-      </div>
-      <div class="stat-value">$3,420</div>
-      <div class="stat-change">8 facturas</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-header">
-        <h3 class="stat-title">Promedio por Consulta</h3>
-        <div class="stat-icon icon-blue">📊</div>
-      </div>
-      <div class="stat-value">$85</div>
-      <div class="stat-change">+$5 desde ayer</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-header">
-        <h3 class="stat-title">Consultas del Mes</h3>
-        <div class="stat-icon icon-purple">🩺</div>
-      </div>
-      <div class="stat-value">289</div>
-      <div class="stat-change">+24 este mes</div>
-    </div>
-  </div>
-  
-  <div class="filters-bar">
-    <div class="search-filter">
-      <input type="text" placeholder="Buscar pago..." class="search-input" id="search-pagos">
-    </div>
-    <div class="filter-actions">
-      <select class="filter-select" id="filter-estado-pago">
-        <option value="">Todos los estados</option>
-        <option value="pagado">Pagado</option>
-        <option value="pendiente">Pendiente</option>
-        <option value="vencido">Vencido</option>
-      </select>
-      <select class="filter-select" id="filter-mes-pago">
-        <option value="">Todos los meses</option>
-        <option value="11">Noviembre 2023</option>
-        <option value="10">Octubre 2023</option>
-        <option value="9">Septiembre 2023</option>
-      </select>
-    </div>
-  </div>
-  
-  <div class="table-container">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Factura</th>
-          <th>Paciente/Propietario</th>
-          <th>Servicio</th>
-          <th>Médico</th>
-          <th>Fecha</th>
-          <th>Monto</th>
-          <th>Estado</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody id="tabla-honorarios">
-        <tr>
-          <td>
-            <div style="font-weight: 600;">FAC-001</div>
-            <div style="font-size: 12px; color: #64748b;">15 Nov 2023</div>
-          </td>
-          <td>
-            <div style="font-weight: 600;">Max</div>
-            <div style="font-size: 12px; color: #64748b;">María Rodríguez</div>
-          </td>
-          <td>Consulta general + medicamentos</td>
-          <td>Dra. Laura Méndez</td>
-          <td>15 Nov 2023</td>
-          <td>
-            <div style="font-weight: 600; color: #16a34a;">$150</div>
-          </td>
-          <td><span class="status-badge status-active">Pagado</span></td>
-          <td>
-            <button class="btn-outline" style="padding: 4px 8px; font-size: 12px;" onclick="verFactura(1)">Ver</button>
-            <button class="btn-secondary" style="padding: 4px 8px; font-size: 12px;" onclick="imprimirFactura(1)">Imprimir</button>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <div style="font-weight: 600;">FAC-002</div>
-            <div style="font-size: 12px; color: #64748b;">12 Nov 2023</div>
-          </td>
-          <td>
-            <div style="font-weight: 600;">Luna</div>
-            <div style="font-size: 12px; color: #64748b;">Carlos Pérez</div>
-          </td>
-          <td>Vacunación anual</td>
-          <td>Dr. Roberto García</td>
-          <td>12 Nov 2023</td>
-          <td>
-            <div style="font-weight: 600; color: #ea580c;">$85</div>
-          </td>
-          <td><span class="status-badge status-pending">Pendiente</span></td>
-          <td>
-            <button class="btn-outline" style="padding: 4px 8px; font-size: 12px;" onclick="verFactura(2)">Ver</button>
-            <button class="btn-primary" style="padding: 4px 8px; font-size: 12px;" onclick="registrarPago(2)">Pagar</button>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <div style="font-weight: 600;">FAC-003</div>
-            <div style="font-size: 12px; color: #64748b;">10 Nov 2023</div>
-          </td>
-          <td>
-            <div style="font-weight: 600;">Toby</div>
-            <div style="font-size: 12px; color: #64748b;">Ana González</div>
-          </td>
-          <td>Cirugía menor + hospitalización</td>
-          <td>Dra. Laura Méndez</td>
-          <td>10 Nov 2023</td>
-          <td>
-            <div style="font-weight: 600; color: #16a34a;">$420</div>
-          </td>
-          <td><span class="status-badge status-active">Pagado</span></td>
-          <td>
-            <button class="btn-outline" style="padding: 4px 8px; font-size: 12px;" onclick="verFactura(3)">Ver</button>
-            <button class="btn-secondary" style="padding: 4px 8px; font-size: 12px;" onclick="imprimirFactura(3)">Imprimir</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
 
-  <!-- Modal para registrar pago -->
-  <div id="modal-pago" class="modal" style="display: none;">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Registrar Pago</h3>
-        <button class="modal-close" onclick="cerrarModalPago()">&times;</button>
-      </div>
-      <div class="modal-body">
-        <form id="form-pago">
-          @csrf
-          <div class="form-group">
-            <label for="pago-factura">Factura</label>
-            <input type="text" id="pago-factura" class="form-control" readonly>
-          </div>
-          <div class="form-group">
-            <label for="pago-paciente">Paciente</label>
-            <input type="text" id="pago-paciente" class="form-control" readonly>
-          </div>
-          <div class="form-group">
-            <label for="pago-monto">Monto a Pagar *</label>
-            <input type="number" id="pago-monto" name="monto" class="form-control" step="0.01" required>
-          </div>
-          <div class="form-group">
-            <label for="pago-metodo">Método de Pago *</label>
-            <select id="pago-metodo" name="metodo_pago" class="form-control" required>
-              <option value="">Seleccionar método</option>
-              <option value="efectivo">Efectivo</option>
-              <option value="tarjeta">Tarjeta</option>
-              <option value="transferencia">Transferencia</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="pago-observaciones">Observaciones</label>
-            <textarea id="pago-observaciones" name="observaciones" class="form-control" rows="3"></textarea>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn-secondary" onclick="cerrarModalPago()">Cancelar</button>
-        <button type="button" class="btn-primary" onclick="confirmarPago()">Confirmar Pago</button>
-      </div>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-header">
+                <h3 class="stat-title">Total Pendiente</h3>
+                <div class="stat-icon icon-orange">💰</div>
+            </div>
+            <div class="stat-value">${{ number_format($honorarios->where('estado', 'Pendiente')->sum('saldo_pendiente'), 2) }}</div>
+            <div class="stat-change">{{ $honorarios->where('estado', 'Pendiente')->count() }} honorarios</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-header">
+                <h3 class="stat-title">Pagado este Mes</h3>
+                <div class="stat-icon icon-green">✅</div>
+            </div>
+            <div class="stat-value">${{ number_format($honorarios->where('estado', 'Pagado')->sum('total_pagado'), 2) }}</div>
+            <div class="stat-change">{{ $honorarios->where('estado', 'Pagado')->count() }} completados</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-header">
+                <h3 class="stat-title">Pagos Parciales</h3>
+                <div class="stat-icon icon-blue">📊</div>
+            </div>
+            <div class="stat-value">${{ number_format($honorarios->where('estado', 'Parcial')->sum('total_pagado'), 2) }}</div>
+            <div class="stat-change">{{ $honorarios->where('estado', 'Parcial')->count() }} en proceso</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-header">
+                <h3 class="stat-title">Total Honorarios</h3>
+                <div class="stat-icon icon-purple">📋</div>
+            </div>
+            <div class="stat-value">{{ $honorarios->count() }}</div>
+            <div class="stat-change">Total registrados</div>
+        </div>
     </div>
-  </div>
+
+    <div class="filters-bar">
+        <div class="search-filter">
+            <div class="search-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" placeholder="Buscar honorario..." class="search-input" id="search-honorarios">
+            </div>
+        </div>
+        <div class="filter-actions">
+            <select class="filter-select" id="filter-estado">
+                <option value="">Todos los estados</option>
+                <option value="Pendiente">Pendiente</option>
+                <option value="Parcial">Parcial</option>
+                <option value="Pagado">Pagado</option>
+            </select>
+            <select class="filter-select" id="filter-mascota">
+                <option value="">Todas las mascotas</option>
+                @foreach($mascotas as $mascota)
+                    <option value="{{ $mascota['id'] }}">{{ $mascota['display_name'] }}</option>
+                @endforeach
+            </select>
+            <button class="btn-filter" id="btn-filtrar">
+                <span class="btn-icon">🔍</span>
+                Filtrar
+            </button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        @if($honorarios->count() > 0)
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Mascota</th>
+                        <th>Propietario</th>
+                        <th>Fecha Ingreso</th>
+                        <th>Subtotal</th>
+                        <th>Pagado</th>
+                        <th>Saldo</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($honorarios as $honorario)
+                        <tr data-id="{{ $honorario->id_honorario }}">
+                            <td>{{ $honorario->id_honorario }}</td>
+                            <td>
+                                <div class="pet-info">
+                                    <div class="pet-avatar">🐾</div>
+                                    <div class="pet-details">
+                                        <strong>{{ $honorario->mascota_nombre }}</strong>
+                                        <small>{{ $honorario->especie }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ $honorario->propietario_nombre }}</td>
+                            <td>{{ $honorario->fecha_ingreso ? \Carbon\Carbon::parse($honorario->fecha_ingreso)->format('d/m/Y') : '—' }}</td>
+                            <td>${{ number_format($honorario->subtotal, 2) }}</td>
+                            <td class="total-pagado">${{ number_format($honorario->total_pagado, 2) }}</td>
+                            <td class="saldo-pendiente">${{ number_format($honorario->saldo_pendiente, 2) }}</td>
+                            <td>
+                                <span class="status-badge estado-badge status-{{ strtolower($honorario->estado) }}">
+                                    {{ $honorario->estado }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="{{ route('honorarios.honorarios.show', $honorario->id_honorario) }}" 
+                                       class="btn-outline btn-small">Ver</a>
+                                    @if($honorario->estado !== 'Pagado')
+                                        <button class="btn-outline btn-small" 
+                                                onclick="editarHonorario({{ $honorario->id_honorario }})">
+                                            Editar
+                                        </button>
+                                        <button class="btn-outline btn-small" 
+                                                onclick="abrirModalPago({{ $honorario->id_honorario }})">
+                                            Pagar
+                                        </button>
+                                    @endif
+                                    <a href="{{ route('honorarios.honorarios.pdf', $honorario->id_honorario) }}" 
+                                       class="btn-outline btn-small" target="_blank">PDF</a>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @else
+            <div class="empty-state">
+                <div class="empty-state-icon">💰</div>
+                <h3>No hay honorarios registrados</h3>
+                <p>Registra el primer honorario haciendo clic en el botón "Nuevo Honorario".</p>
+            </div>
+        @endif
+    </div>
+
+    <!-- Modal para nuevo honorario -->
+    <div id="modal-honorario" class="modal">
+        <div class="modal-overlay" onclick="cerrarModalHonorario()"></div>
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Nuevo Honorario</h3>
+                <button class="modal-close" onclick="cerrarModalHonorario()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-honorario" action="{{ route('honorarios.honorarios.store') }}" method="POST">
+                    @csrf
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="honorario-mascota">Mascota *</label>
+                            <select id="honorario-mascota" name="id_mascota" class="form-control" required>
+                                <option value="">Seleccionar mascota</option>
+                                @foreach($mascotas as $mascota)
+                                    <option value="{{ $mascota['id'] }}" 
+                                            data-especie="{{ $mascota['especie'] }}">
+                                        {{ $mascota['display_name'] }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="honorario-hospitalizacion">Hospitalización (Opcional)</label>
+                            <select id="honorario-hospitalizacion" name="id_hospitalizacion" class="form-control">
+                                <option value="">Sin hospitalización relacionada</option>
+                                @foreach($hospitalizaciones as $hosp)
+                                    <option value="{{ $hosp->id_hospitalizacion }}">
+                                        {{ $hosp->mascota_nombre }} - {{ \Carbon\Carbon::parse($hosp->fecha_ingreso)->format('d/m/Y') }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="honorario-fecha-ingreso">Fecha de Ingreso *</label>
+                            <input type="date" id="honorario-fecha-ingreso" name="fecha_ingreso" 
+                                   class="form-control" value="{{ date('Y-m-d') }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="honorario-fecha-corte">Fecha de Corte</label>
+                            <input type="date" id="honorario-fecha-corte" name="fecha_corte" class="form-control">
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <div class="section-header">
+                            <h4>Detalles del Honorario</h4>
+                            <button type="button" class="btn-secondary btn-small" onclick="agregarDetalle()">
+                                + Agregar Concepto
+                            </button>
+                        </div>
+                        <div id="detalles-container">
+                            <div class="detalle-item" data-index="0">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Concepto *</label>
+                                        <input type="text" name="detalles[0][concepto]" 
+                                               class="form-control concepto-input" 
+                                               placeholder="Descripción del servicio" required>
+                                        <div class="concepto-suggestions"></div>
+                                    </div>
+                                    <div class="form-group form-group-small">
+                                        <label>Cantidad *</label>
+                                        <input type="number" name="detalles[0][cantidad]" 
+                                               class="form-control cantidad-input" 
+                                               min="1" value="1" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Precio Unitario *</label>
+                                        <input type="number" name="detalles[0][precio_unitario]" 
+                                               class="form-control precio-input" 
+                                               step="0.01" min="0" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Importe</label>
+                                        <input type="text" class="form-control importe-display" readonly>
+                                    </div>
+                                    <div class="form-group form-group-actions">
+                                        <button type="button" class="btn-danger btn-small" 
+                                                onclick="eliminarDetalle(this)" style="margin-top: 25px;">
+                                            ×
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="total-section">
+                            <div class="total-row">
+                                <strong>Subtotal: $<span id="subtotal-display">0.00</span></strong>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="cerrarModalHonorario()">Cancelar</button>
+                <button type="button" class="btn-primary" onclick="guardarHonorario()">Registrar Honorario</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para registrar pago -->
+    <div id="modal-pago" class="modal">
+        <div class="modal-overlay" onclick="cerrarModalPago()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Registrar Pago</h3>
+                <button class="modal-close" onclick="cerrarModalPago()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="info-honorario-pago" class="info-card" style="margin-bottom: 20px;">
+                    <!-- Información del honorario se llenará dinámicamente -->
+                </div>
+                
+                <form id="form-pago">
+                    @csrf
+                    <input type="hidden" id="pago-id-honorario" name="id_honorario">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="pago-monto">Monto a Pagar *</label>
+                            <input type="number" id="pago-monto" name="monto" 
+                                   class="form-control" step="0.01" min="0.01" required
+                                   placeholder="0.00">
+                            <small class="form-text text-muted">Ingrese el monto total que pagará el cliente</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="pago-tipo">Tipo de Pago *</label>
+                            <select id="pago-tipo" name="tipo_pago" class="form-control" required>
+                                <option value="">Seleccionar tipo</option>
+                                <option value="Efectivo">Efectivo</option>
+                                <option value="Tarjeta">Tarjeta</option>
+                                <option value="Transferencia">Transferencia</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="pago-notas">Notas (Opcional)</label>
+                        <textarea id="pago-notas" name="notas" class="form-control" rows="3"
+                                  placeholder="Notas adicionales sobre el pago..."></textarea>
+                    </div>
+
+                    <div class="pago-preview" id="pago-preview" style="display: none;">
+                        <h4>Vista Previa del Pago</h4>
+                        <div class="preview-content">
+                            <!-- Se llenará dinámicamente -->
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="cerrarModalPago()">Cancelar</button>
+                <button type="button" class="btn-primary" onclick="procesarPago()">Registrar Pago</button>
+            </div>
+        </div>
+    </div>
 </section>
+
+<script src="{{ asset('js/recepcion/honorarios.js') }}"></script>
 @endsection

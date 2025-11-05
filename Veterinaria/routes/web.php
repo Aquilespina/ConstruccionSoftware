@@ -67,20 +67,18 @@ Route::middleware(['auth', 'role:recepcionista'])->group(function () {
 
         // Rutas para mascotas
         Route::prefix('mascotas')->name('mascotas.')->group(function () {
-            // Ruta principal del módulo mascotas (vista)
+
             Route::get('/', function () {
                 return view('dash.recepcion.mascotas');
             })->name('index');
 
-            // Incluir definiciones REST/CRUD específicas (index.php dentro de routes/mascotas)
             require __DIR__.'/mascotas/index.php';
         });
 
-        // Rutas para profesionales - CORREGIDO
+        // Rutas para profesionales - 
         Route::prefix('profesionales')->name('profesionales.')->group(function () {
             Route::get('/', [ProfesionalController::class, 'index'])->name('index');
 
-            // Incluir definiciones REST/CRUD específicas
             require __DIR__.'/profesionales/index.php';
         });
         // Rutas para citas
@@ -88,12 +86,10 @@ Route::middleware(['auth', 'role:recepcionista'])->group(function () {
             require __DIR__.'/citas/index.php';
         });
 
-        // Expedientes (agregado desde citas/mascotas/propietarios)
         Route::get('/expedientes', [\App\Http\Controllers\Recepcion\ExpedienteController::class, 'index'])
             ->name('recepcion.expedientes');
 
         Route::get('/recetas', function () {
-            // Cargar listas requeridas por la vista de recetas
             $medicos = Profesional::orderBy('nombre')->get(['rfc as id', 'nombre', 'especialidad']);
             $mascotas = Mascota::with('propietario')
                 ->orderBy('nombre')
@@ -101,13 +97,15 @@ Route::middleware(['auth', 'role:recepcionista'])->group(function () {
             return view('dash.recepcion.recetas', compact('medicos','mascotas'));
         })->name('recepcion.recetas');
 
-        Route::get('/honorarios', function () {
-            return view('dash.recepcion.honorarios');
-        })->name('recepcion.honorarios');
+        // Rutas para honorarios
+        Route::prefix('honorarios')->name('honorarios.')->group(function () {
+            require __DIR__.'/honorarios/index.php';
+        });
 
-        Route::get('/hospitalizaciones', function () {
-            return view('dash.recepcion.hospitalizaciones');
-        })->name('recepcion.hospitalizaciones');
+        // Rutas para hospitalizaciones
+        Route::prefix('hospitalizaciones')->name('hospitalizaciones.')->group(function () {
+            require __DIR__.'/hospitalizaciones/index.php';
+        });
     });
      
     

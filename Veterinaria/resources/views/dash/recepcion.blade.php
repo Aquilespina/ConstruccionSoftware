@@ -71,16 +71,16 @@
           <span class="nav-label">Recetas</span>
         </a>
 
-        <!-- Honorarios (nombre: recepcion.honorarios) -->
-        <a href="{{ route('recepcion.honorarios') }}"
-           class="nav-item {{ request()->routeIs('recepcion.honorarios') ? 'active' : '' }}">
+        <!-- Honorarios (nombre: honorarios.honorarios.index) -->
+        <a href="{{ route('honorarios.honorarios.index') }}"
+           class="nav-item {{ request()->routeIs('honorarios.honorarios.*') ? 'active' : '' }}">
           <span class="nav-icon">💵</span>
           <span class="nav-label">Honorarios</span>
         </a>
 
-        <!-- Hospitalizaciones (nombre: recepcion.hospitalizaciones) -->
-        <a href="{{ route('recepcion.hospitalizaciones') }}"
-           class="nav-item {{ request()->routeIs('recepcion.hospitalizaciones') ? 'active' : '' }}">
+        <!-- Hospitalizaciones -->
+        <a href="{{ route('hospitalizaciones.index') }}"
+           class="nav-item {{ request()->routeIs('hospitalizaciones.*') ? 'active' : '' }}">
           <span class="nav-icon">🏥</span>
           <span class="nav-label">Hospitalizaciones</span>
         </a>
