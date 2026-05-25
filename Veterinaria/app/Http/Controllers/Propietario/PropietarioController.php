@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use App\Models\Propietario\Propietario;
+use Illuminate\Support\Facades\DB;
 
 class PropietarioController extends Controller
 {
@@ -43,18 +44,53 @@ class PropietarioController extends Controller
      */
     public function store(Request $request)
     {
-        $propietario = Propietario::create([
-            'nombre' => $request->input('nombre'),
-            'telefono' => $request->input('telefono'),
-            'direccion' => $request->input('direccion'),
-            'correo_electronico' => $request->input('correo_electronico'),
-        ]);
+        try {
+            // Validación básica
+            $validated = $request->validate([
+                'nombre' => 'required|string|max:255',
+                'telefono' => 'required|string|max:20',
+                'direccion' => 'nullable|string|max:500',
+                'correo_electronico' => 'nullable|email|max:255',
+            ]);
+            
+            // Verificar qué columnas existen en la tabla
+            $columns = \DB::select("SHOW COLUMNS FROM propietario");
+            $columnNames = array_column($columns, 'Field');
+            
+            // Preparar datos solo con columnas que existen
+            $data = [];
+            if (in_array('nombre', $columnNames)) $data['nombre'] = $validated['nombre'];
+            if (in_array('telefono', $columnNames)) $data['telefono'] = $validated['telefono'];
+            if (in_array('direccion', $columnNames)) $data['direccion'] = $validated['direccion'] ?? '';
+            if (in_array('correo_electronico', $columnNames)) $data['correo_electronico'] = $validated['correo_electronico'] ?? '';
+            
+            // Insertar solo los campos que existen
+            $id = \DB::table('propietario')->insertGetId($data);
+            
+            // Obtener el propietario creado
+            $propietario = \DB::table('propietario')->where('id_propietario', $id)->first();
 
-
-        return response()->json([
-            'message' => 'Propietario creado correctamente',
-            'propietario' => $propietario
-        ], 201);
+            return response()->json([
+                'success' => true,
+                'message' => 'Propietario creado correctamente',
+                'propietario' => $propietario,
+                'columnas_disponibles' => $columnNames
+            ], 201);
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors()
+            ], 422);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al guardar el propietario: ' . $e->getMessage(),
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

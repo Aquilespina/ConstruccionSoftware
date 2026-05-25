@@ -674,6 +674,10 @@ async function guardarProfesional() {
 
     try {
         console.log('Enviando profesional a:', url);
+        console.log('FormData enviado:');
+        for (let [key, value] of formData.entries()) {
+            console.log(`  ${key}: ${value}`);
+        }
         
     const response = await fetch(url, {
       method: method,
@@ -694,7 +698,23 @@ async function guardarProfesional() {
             try {
                 if (contentType && contentType.includes('application/json')) {
                     const errorData = await response.json();
-                    errorMessage = errorData.message || errorData.errors || errorMessage;
+                    console.error('Respuesta JSON del servidor:', errorData);
+                    
+                    // Si hay errores de validación específicos
+                    if (errorData.errors && typeof errorData.errors === 'object') {
+                        const errorDetails = [];
+                        for (const [field, messages] of Object.entries(errorData.errors)) {
+                            if (Array.isArray(messages)) {
+                                errorDetails.push(`${field}: ${messages.join(', ')}`);
+                            } else {
+                                errorDetails.push(`${field}: ${messages}`);
+                            }
+                        }
+                        errorMessage = errorDetails.join('\n');
+                        console.error('Errores de validación detallados:', errorData.errors);
+                    } else if (errorData.message) {
+                        errorMessage = errorData.message;
+                    }
                 } else {
                     const textResponse = await response.text();
                     console.error('Respuesta de error (HTML):', textResponse.substring(0, 500));

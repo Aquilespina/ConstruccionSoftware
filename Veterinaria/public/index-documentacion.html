@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centro de Documentación - Sistema de Gestión Veterinaria</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 50px 30px;
+            text-align: center;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border-top: 5px solid #2c5aa0;
+        }
+        .header h1 {
+            color: #2c5aa0;
+            font-size: 2.8em;
+            margin-bottom: 15px;
+        }
+        .header p {
+            color: #666;
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+        .header .subtitle {
+            color: #999;
+            font-size: 1em;
+            margin-top: 20px;
+        }
+        .documents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        .document-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+        .document-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .doc-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .doc-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        .doc-title {
+            font-size: 1.8em;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .doc-type {
+            font-size: 0.9em;
+            opacity: 0.9;
+            font-style: italic;
+        }
+        .doc-content {
+            padding: 25px;
+        }
+        .doc-description {
+            color: #555;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        .doc-features {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+        .doc-features li {
+            color: #666;
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+        .doc-features li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #2c5aa0;
+            font-weight: bold;
+        }
+        .doc-footer {
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .doc-size {
+            color: #999;
+            font-size: 0.9em;
+        }
+        .doc-link {
+            display: inline-block;
+            background: #2c5aa0;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        .doc-link:hover {
+            background: #1e4478;
+        }
+        .info-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .info-section h2 {
+            color: #2c5aa0;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 3px solid #2c5aa0;
+            padding-bottom: 15px;
+        }
+        .info-section h3 {
+            color: #4a7ba7;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .stat-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .stat-label {
+            font-size: 0.95em;
+            opacity: 0.9;
+        }
+        .content-list {
+            background: #f8f9fa;
+            border-left: 4px solid #2c5aa0;
+            padding: 15px 20px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        .content-list ul {
+            margin-left: 20px;
+        }
+        .content-list li {
+            margin: 8px 0;
+            color: #555;
+        }
+        .footer {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            color: #666;
+            margin-top: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .footer p {
+            margin: 10px 0;
+        }
+        .footer strong {
+            color: #2c5aa0;
+        }
+        .badge {
+            display: inline-block;
+            background: #e8f4f8;
+            color: #2c5aa0;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin: 5px 5px 5px 0;
+            border: 1px solid #2c5aa0;
+        }
+        .updated {
+            color: #999;
+            font-size: 0.9em;
+            margin-top: 15px;
+        }
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            .documents-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <h1>🏥 Sistema de Gestión Veterinaria</h1>
+            <p>Centro de Documentación del Producto</p>
+            <p class="subtitle">Visualiza el desarrollo completo del proyecto en múltiples formatos</p>
+            <div class="updated">Documentación generada: 15 de Diciembre de 2025</div>
+        </div>
+
+        <!-- DOCUMENTOS DISPONIBLES -->
+        <div class="documents-grid">
+            <!-- PDF CARD -->
+            <div class="document-card">
+                <div class="doc-header">
+                    <div class="doc-icon">📄</div>
+                    <div class="doc-title">PDF Profesional</div>
+                    <div class="doc-type">Documento Ejecutivo</div>
+                </div>
+                <div class="doc-content">
+                    <p class="doc-description">
+                        Documentación completa en formato PDF, ideal para impresión, distribución y almacenamiento permanente.
+                    </p>
+                    <ul class="doc-features">
+                        <li>Diseño profesional formateado</li>
+                        <li>Tabla de contenidos automática</li>
+                        <li>Optimizado para impresión A4</li>
+                        <li>46 KB - Descarga rápida</li>
+                        <li>Autocontenido - Sin dependencias</li>
+                    </ul>
+                    <div class="doc-footer">
+                        <span class="doc-size">PDF • 46 KB • A4</span>
+                        <a href="Documentacion-Producto-Veterinaria-2025-12-15-221223.pdf" class="doc-link" download>
+                            Descargar PDF
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HTML INTERACTIVO CARD -->
+            <div class="document-card">
+                <div class="doc-header">
+                    <div class="doc-icon">🌐</div>
+                    <div class="doc-title">HTML Interactivo</div>
+                    <div class="doc-type">Documentación Digital</div>
+                </div>
+                <div class="doc-content">
+                    <p class="doc-description">
+                        Interfaz web moderna con navegación por pestañas, perfecta para lectura digital interactiva.
+                    </p>
+                    <ul class="doc-features">
+                        <li>6 pestañas temáticas</li>
+                        <li>Diseño responsivo</li>
+                        <li>Navegación fluida</li>
+                        <li>Abre directamente en navegador</li>
+                        <li>Elementos visuales interactivos</li>
+                    </ul>
+                    <div class="doc-footer">
+                        <span class="doc-size">HTML5 • Responsive</span>
+                        <a href="documentacion-interactiva.html" class="doc-link">
+                            Abrir Documento
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MARKDOWN CARD -->
+            <div class="document-card">
+                <div class="doc-header">
+                    <div class="doc-icon">📝</div>
+                    <div class="doc-title">Guía de Referencia</div>
+                    <div class="doc-type">Formato Markdown</div>
+                </div>
+                <div class="doc-content">
+                    <p class="doc-description">
+                        Documentación en Markdown con instrucciones de acceso, características y pasos de regeneración.
+                    </p>
+                    <ul class="doc-features">
+                        <li>Instrucciones de uso</li>
+                        <li>Comparación de documentos</li>
+                        <li>Guía de regeneración</li>
+                        <li>Compatible con Git</li>
+                        <li>Fácil de mantener y actualizar</li>
+                    </ul>
+                    <div class="doc-footer">
+                        <span class="doc-size">Markdown • Texto</span>
+                        <a href="../DOCUMENTACION-GENERADA.md" class="doc-link">
+                            Ver Guía
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ESTADÍSTICAS -->
+        <div class="info-section">
+            <h2>📊 Estadísticas del Proyecto</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">8</div>
+                    <div class="stat-label">Módulos Principales</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">8</div>
+                    <div class="stat-label">Modelos de Datos</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">100+</div>
+                    <div class="stat-label">Endpoints API</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">50+</div>
+                    <div class="stat-label">Rutas Disponibles</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">15+</div>
+                    <div class="stat-label">Controladores</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">10K+</div>
+                    <div class="stat-label">Líneas de Código</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTENIDO CUBIERTO -->
+        <div class="info-section">
+            <h2>📚 Contenido Cubierto en la Documentación</h2>
+            
+            <h3>1. Descripción General del Producto</h3>
+            <div class="content-list">
+                <ul>
+                    <li>Visión y propósito del proyecto</li>
+                    <li>Beneficios principales para la clínica</li>
+                    <li>Casos de uso y aplicaciones</li>
+                </ul>
+            </div>
+
+            <h3>2. Características Principales (8 Módulos)</h3>
+            <div class="content-list">
+                <ul>
+                    <li>✓ Gestión de Citas - Programación y seguimiento</li>
+                    <li>✓ Registro de Mascotas - Base de datos de pacientes</li>
+                    <li>✓ Control de Propietarios - Información de clientes</li>
+                    <li>✓ Administración de Profesionales - Equipo veterinario</li>
+                    <li>✓ Gestión de Honorarios - Facturación y pagos</li>
+                    <li>✓ Generación de Recetas - Prescripciones médicas</li>
+                    <li>✓ Hospitalizaciones - Seguimiento de internos</li>
+                    <li>✓ Control de Usuarios - Autenticación y roles</li>
+                </ul>
+            </div>
+
+            <h3>3. Arquitectura del Sistema</h3>
+            <div class="content-list">
+                <ul>
+                    <li>Patrón MVC (Model-View-Controller)</li>
+                    <li>Flujo de solicitudes HTTP</li>
+                    <li>Estructura de directorios</li>
+                    <li>Componentes principales y relaciones</li>
+                </ul>
+            </div>
+
+            <h3>4. Stack Tecnológico</h3>
+            <div class="content-list">
+                <ul>
+                    <li><strong>Backend:</strong> PHP 8.2+ | Laravel 12 | Eloquent ORM</li>
+                    <li><strong>Frontend:</strong> HTML5 | CSS3 | JavaScript ES6+</li>
+                    <li><strong>Base de Datos:</strong> PostgreSQL 12+ (o MySQL 5.7+)</li>
+                    <li><strong>Herramientas:</strong> Vite | Composer | npm</li>
+                </ul>
+            </div>
+
+            <h3>5. Modelos de Datos (8 Entidades)</h3>
+            <div class="content-list">
+                <ul>
+                    <li>Cita - Consultas veterinarias</li>
+                    <li>Mascota - Pacientes animales</li>
+                    <li>Propietario - Dueños de mascotas</li>
+                    <li>Profesional - Veterinarios</li>
+                    <li>Receta - Prescripciones médicas</li>
+                    <li>Honorario - Servicios y pagos</li>
+                    <li>Hospitalizacion - Internamiento de mascotas</li>
+                    <li>User - Usuarios del sistema</li>
+                </ul>
+            </div>
+
+            <h3>6. API y Rutas RESTful</h3>
+            <div class="content-list">
+                <ul>
+                    <li>Estructura de endpoints organizados por módulos</li>
+                    <li>Métodos HTTP: GET, POST, PUT, DELETE, PATCH</li>
+                    <li>100+ endpoints disponibles</li>
+                    <li>Documentación de cada endpoint</li>
+                </ul>
+            </div>
+
+            <h3>7. Guía de Despliegue</h3>
+            <div class="content-list">
+                <ul>
+                    <li>Requisitos del sistema detallados</li>
+                    <li>Instalación paso a paso</li>
+                    <li>Configuración de variables de entorno</li>
+                    <li>Despliegue en desarrollo y producción</li>
+                    <li>Checklist de seguridad</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- CÓMO USAR -->
+        <div class="info-section">
+            <h2>🚀 Cómo Acceder a los Documentos</h2>
+            
+            <h3>Opción 1: PDF (Recomendado para Impresión)</h3>
+            <p>Haz clic en el botón "Descargar PDF" en la tarjeta de documento PDF arriba.</p>
+            <p>O navega directamente a: <code style="background: #f0f0f0; padding: 5px 10px; border-radius: 3px;">Documentacion-Producto-Veterinaria-2025-12-15-221223.pdf</code></p>
+
+            <h3>Opción 2: HTML Interactivo (Recomendado para Lectura Digital)</h3>
+            <p>Haz clic en el botón "Abrir Documento" en la tarjeta de documento HTML.</p>
+            <p>O abre directamente: <code style="background: #f0f0f0; padding: 5px 10px; border-radius: 3px;">documentacion-interactiva.html</code></p>
+
+            <h3>Opción 3: Markdown (Para Referencia Técnica)</h3>
+            <p>Lee el archivo DOCUMENTACION-GENERADA.md desde el editor o navegador.</p>
+        </div>
+
+        <!-- CARACTERÍSTICAS DESTACADAS -->
+        <div class="info-section">
+            <h2>✨ Características Destacadas de los Documentos</h2>
+            
+            <h3>PDF Profesional</h3>
+            <ul style="margin-left: 20px;">
+                <li>✅ Tabla de contenidos automática</li>
+                <li>✅ Índices y referencias cruzadas</li>
+                <li>✅ Diseño profesional con colores corporativos</li>
+                <li>✅ Optimizado para impresión en A4</li>
+                <li>✅ Completamente autocontenido (sin dependencias)</li>
+                <li>✅ Búsqueda de texto en lector PDF</li>
+            </ul>
+
+            <h3>HTML Interactivo</h3>
+            <ul style="margin-left: 20px;">
+                <li>✅ Interfaz visual moderna y colorida</li>
+                <li>✅ 6 pestañas temáticas para navegación fluida</li>
+                <li>✅ Totalmente responsivo (mobile, tablet, desktop)</li>
+                <li>✅ No requiere servidor (funciona localmente)</li>
+                <li>✅ Tarjetas visuales y elementos interactivos</li>
+                <li>✅ Compatible con todos los navegadores modernos</li>
+            </ul>
+        </div>
+
+        <!-- GUÍA DE LECTURA -->
+        <div class="info-section">
+            <h2>📖 Guía de Lectura Recomendada</h2>
+            
+            <h3>Para Gerentes y Stakeholders</h3>
+            <p>Empieza por la <strong>Descripción General</strong> y las <strong>Características Principales</strong> para entender el valor del producto.</p>
+            
+            <h3>Para Desarrolladores</h3>
+            <p>Lee la <strong>Arquitectura del Sistema</strong>, <strong>Especificaciones Técnicas</strong>, <strong>Modelos de Datos</strong> y <strong>Guía de Despliegue</strong>.</p>
+            
+            <h3>Para DevOps/Administradores</h3>
+            <p>Enfócate en <strong>Requisitos del Sistema</strong>, <strong>Guía de Despliegue</strong>, <strong>Variables de Entorno</strong> y <strong>Checklist de Seguridad</strong>.</p>
+        </div>
+
+        <!-- INFORMACIÓN ADICIONAL -->
+        <div class="info-section">
+            <h2>ℹ️ Información del Proyecto</h2>
+            <p><strong>Nombre:</strong> Sistema de Gestión Veterinaria</p>
+            <p><strong>Versión:</strong> 1.0</p>
+            <p><strong>Documentación Generada:</strong> 15 de Diciembre de 2025</p>
+            <p><strong>Framework:</strong> Laravel 12 | <strong>Lenguaje:</strong> PHP 8.2+</p>
+            <p><strong>Base de Datos:</strong> PostgreSQL 12+</p>
+            
+            <h3 style="margin-top: 20px;">Ubicación de Archivos</h3>
+            <div class="content-list">
+                <ul>
+                    <li><strong>PDF:</strong> /public/Documentacion-Producto-Veterinaria-2025-12-15-221223.pdf</li>
+                    <li><strong>HTML:</strong> /public/documentacion-interactiva.html</li>
+                    <li><strong>Markdown:</strong> /DOCUMENTACION-GENERADA.md</li>
+                    <li><strong>Este Centro:</strong> /public/index-documentacion.html</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <p><strong>Sistema de Gestión Veterinaria</strong></p>
+            <p>📋 Documentación Completa del Producto</p>
+            <p style="margin-top: 20px; font-size: 0.9em;">© 2025 - Todos los derechos reservados</p>
+            <p style="margin-top: 10px; color: #999; font-size: 0.85em;">Última actualización: 15 de Diciembre de 2025</p>
+        </div>
+    </div>
+</body>
+</html>

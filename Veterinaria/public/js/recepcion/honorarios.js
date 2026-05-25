@@ -668,7 +668,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <strong>Monto a pagar:</strong> $${monto.toFixed(2)}<br>
                         <small style="color: #6b7280;">
                             El pago se distribuirá automáticamente entre los conceptos pendientes, 
-                            comenzando por los de mayor importe.
+                            comenzando por los conceptos más antiguos (primeros agregados).
                         </small>
                     </div>
                 </div>

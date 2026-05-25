@@ -262,21 +262,28 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($detalles as $detalle)
+            @foreach($detallesConEstado as $detalle)
             <tr>
                 <td>{{ $detalle->concepto }}</td>
                 <td class="text-center">{{ $detalle->cantidad }}</td>
                 <td class="text-right">${{ number_format($detalle->precio_unitario, 2) }}</td>
                 <td class="text-right">${{ number_format($detalle->importe, 2) }}</td>
                 <td class="text-center">
-                    @if($detalle->fecha_pago)
-                        <span style="color: green;">✓ Pagado</span>
-                        <br><small>{{ \Carbon\Carbon::parse($detalle->fecha_pago)->format('d/m/Y') }}</small>
-                        @if($detalle->tipo_pago)
-                            <br><small>{{ $detalle->tipo_pago }}</small>
+                    @if($detalle->estado_pago === 'Pagado')
+                        <span style="color: green; font-weight: bold;">✅ Pagado</span>
+                        @if($detalle->fecha_pago)
+                            <br><small style="color: #666;">{{ \Carbon\Carbon::parse($detalle->fecha_pago)->format('d/m/Y') }}</small>
                         @endif
+                        @if(isset($detalle->tipo_pago) && $detalle->tipo_pago)
+                            <br><small style="color: #666;">{{ $detalle->tipo_pago }}</small>
+                        @endif
+                    @elseif($detalle->estado_pago === 'Parcial')
+                        <span style="color: orange; font-weight: bold;">🔄 Parcial</span>
+                        <br><small style="color: #666;">Pagado: ${{ number_format($detalle->monto_pagado_calculado ?? 0, 2) }}</small>
+                        <br><small style="color: #666;">Resta: ${{ number_format($detalle->saldo_concepto, 2) }}</small>
                     @else
-                        <span style="color: orange;">⏳ Pendiente</span>
+                        <span style="color: red; font-weight: bold;">⏳ Pendiente</span>
+                        <br><small style="color: #666;">Monto completo</small>
                     @endif
                 </td>
             </tr>
@@ -291,15 +298,81 @@
         </div>
         <div class="total-row">
             <div class="total-label">Total Pagado:</div>
-            <div class="total-value" style="color: green;">${{ number_format($honorario->total_pagado, 2) }}</div>
+            <div class="total-value" style="color: green; font-weight: bold;">
+                ${{ number_format($totalPagadoReal, 2) }}
+            </div>
         </div>
         <div class="total-row" style="border-top: 2px solid #007bff; margin-top: 10px; padding-top: 10px;">
             <div class="total-label">Saldo Pendiente:</div>
-            <div class="total-value" style="color: {{ $honorario->saldo_pendiente > 0 ? 'red' : 'green' }}; font-size: 16px;">
-                ${{ number_format($honorario->saldo_pendiente, 2) }}
+            <div class="total-value" style="color: {{ $saldoPendiente > 0 ? 'red' : 'green' }}; font-size: 16px;">
+                ${{ number_format($saldoPendiente, 2) }}
             </div>
         </div>
     </div>
+
+    @php
+        $conceptosPagados = $detallesConEstado->where('estado_pago', 'Pagado')->count();
+        $conceptosParciales = $detallesConEstado->where('estado_pago', 'Parcial')->count();
+        $conceptosPendientes = $detallesConEstado->where('estado_pago', 'Pendiente')->count();
+        $totalConceptos = $detallesConEstado->count();
+    @endphp
+
+    @if($totalConceptos > 0)
+    <div class="payment-summary" style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #007bff;">
+        <h4 style="margin-top: 0; color: #007bff;">Resumen de Estado de Conceptos</h4>
+        <div style="display: table; width: 100%;">
+            <div style="display: table-row;">
+                <div style="display: table-cell; padding: 5px 15px 5px 0;">
+                    <span style="color: green; font-weight: bold;">Conceptos Pagados:</span> {{ $conceptosPagados }}/{{ $totalConceptos }}
+                </div>
+                @if($conceptosParciales > 0)
+                <div style="display: table-cell; padding: 5px 15px 5px 0;">
+                    <span style="color: orange; font-weight: bold;">Conceptos Parciales:</span> {{ $conceptosParciales }}
+                </div>
+                @endif
+                @if($conceptosPendientes > 0)
+                <div style="display: table-cell; padding: 5px;">
+                    <span style="color: red; font-weight: bold;">⏳ Conceptos Pendientes:</span> {{ $conceptosPendientes }}
+                </div>
+                @endif
+            </div>
+        </div>
+    </div>
+    @endif
+
+    @if(count($pagos) > 0)
+    <div class="payment-history">
+        <h4 style="color: #007bff; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Historial de Pagos</h4>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px;">
+            <thead>
+                <tr style="background-color: #f8f9fa;">
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Fecha</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Monto</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Tipo</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Notas</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($pagos as $pago)
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 6px;">
+                        {{ \Carbon\Carbon::parse($pago->fecha_pago)->format('d/m/Y H:i') }}
+                    </td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: right; color: green;">
+                        ${{ number_format($pago->monto, 2) }}
+                    </td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">
+                        {{ $pago->metodo_pago ?? 'N/A' }}
+                    </td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">
+                        {{ $pago->observaciones ?? '—' }}
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+    @endif
 
     @if($honorario->saldo_pendiente > 0)
     <div class="payment-info">
@@ -309,9 +382,20 @@
     </div>
     @endif
 
+    <div style="background-color: #e8f4fd; border: 1px solid #bee5eb; border-radius: 5px; padding: 10px; margin: 20px 0; font-size: 10px;">
+        <h4 style="margin: 0 0 10px 0; color: #0c5460;">📋 Información del Documento</h4>
+        <p style="margin: 5px 0;"><strong>✅ Datos Actualizados:</strong> Este PDF refleja únicamente los conceptos vigentes del honorario.</p>
+        <p style="margin: 5px 0;"><strong>🔄 Cálculo en Tiempo Real:</strong> Los estados de pago se calculan automáticamente basados en el historial de pagos.</p>
+        <p style="margin: 5px 0;"><strong>📊 Distribución de Pagos:</strong> Los pagos se aplican automáticamente a los conceptos más antiguos primero.</p>
+        @if(count($detallesConEstado) > 0)
+        <p style="margin: 5px 0;"><strong>📝 Total de Conceptos:</strong> {{ count($detallesConEstado) }} concepto(s) activo(s) en este honorario.</p>
+        @endif
+    </div>
+
     <div class="footer">
         <p>Este documento fue generado automáticamente el {{ date('d/m/Y') }} a las {{ date('H:i') }}</p>
-        <p>Clínica Veterinaria - Sistema de Gestión de Honorarios</p>
+        <p><strong>Nota:</strong> Si los conceptos fueron modificados recientemente, este PDF ya refleja los cambios actuales</p>
+        <p>Clínica Veterinaria - Sistema de Gestión de Honorarios v1.0</p>
     </div>
 </body>
 </html>

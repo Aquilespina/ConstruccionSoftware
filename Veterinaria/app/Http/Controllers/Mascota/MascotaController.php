@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Mascota;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Mascota\Mascota;
+use Illuminate\Support\Facades\DB;
 
 class MascotaController extends Controller
 {
@@ -31,24 +32,61 @@ class MascotaController extends Controller
      */
     public function store(Request $request)
     {
-          $validated = $request->validate([
-        'nombre' => 'required|string|max:255',
-        'especie' => 'required|string|max:255',
-        'raza' => 'required|string|max:255',
-        'edad' => 'required|integer',
-        'peso' => 'required|numeric',
-        'sexo' => 'required|string|max:10',
-        'historial_medico' => 'nullable|string',
-        'id_propietario' => 'required|exists:propietario,id_propietario',
-    ]);
+        try {
+            // Validación básica (solo campos que sabemos que existen)
+            $validated = $request->validate([
+                'nombre' => 'required|string|max:255',
+                'especie' => 'required|string|max:255',
+                'raza' => 'required|string|max:255',
+                'edad' => 'nullable|integer|min:0',
+                'peso' => 'nullable|numeric|min:0',
+                'sexo' => 'nullable|string|max:10',
+                'historial_medico' => 'nullable|string',
+                'id_propietario' => 'required|integer|min:1',
+            ]);
+            
+            // Verificar qué columnas existen en la tabla
+            $columns = \DB::select("SHOW COLUMNS FROM mascota");
+            $columnNames = array_column($columns, 'Field');
+            
+            // Preparar datos solo con columnas que existen
+            $data = [];
+            if (in_array('nombre', $columnNames)) $data['nombre'] = $validated['nombre'];
+            if (in_array('especie', $columnNames)) $data['especie'] = $validated['especie'];
+            if (in_array('raza', $columnNames)) $data['raza'] = $validated['raza'];
+            if (in_array('edad', $columnNames)) $data['edad'] = $validated['edad'] ?? 0;
+            if (in_array('peso', $columnNames)) $data['peso'] = $validated['peso'] ?? 0;
+            if (in_array('sexo', $columnNames)) $data['sexo'] = $validated['sexo'] ?? '';
+            if (in_array('historial_medico', $columnNames)) $data['historial_medico'] = $validated['historial_medico'] ?? '';
+            if (in_array('id_propietario', $columnNames)) $data['id_propietario'] = $validated['id_propietario'];
+            
+            // Insertar solo los campos que existen
+            $id = \DB::table('mascota')->insertGetId($data);
+            
+            // Obtener la mascota creada
+            $mascota = \DB::table('mascota')->where('id_mascota', $id)->first();
 
-
-    $mascota = Mascota::create($validated);
-
-    return response()->json([
-        'message' => 'Mascota creada correctamente',
-        'mascota' => $mascota->load('propietario:id,nombre') // Carga la relación
-    ], 201);
+            return response()->json([
+                'success' => true,
+                'message' => 'Mascota creada correctamente',
+                'mascota' => $mascota,
+                'columnas_disponibles' => $columnNames
+            ], 201);
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors()
+            ], 422);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al guardar la mascota: ' . $e->getMessage(),
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

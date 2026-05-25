@@ -291,10 +291,9 @@ class HonorariosController extends Controller
                     'saldo_pendiente' => $subtotal - $honorario->total_pagado
                 ]);
 
-            // Eliminar detalles existentes que no han sido pagados
+            // Eliminar todos los detalles existentes
             DB::table('detalle_honorario')
                 ->where('id_honorario', $id)
-                ->whereNull('fecha_pago')
                 ->delete();
 
             // Crear nuevos detalles
@@ -313,23 +312,23 @@ class HonorariosController extends Controller
                 ]);
             }
 
-            // Recalcular estado del honorario
-            $totalPagado = DB::table('detalle_honorario')
+            // Recalcular estado del honorario basado en el historial de pagos
+            $totalPagadoReal = DB::table('pago_honorario')
                 ->where('id_honorario', $id)
-                ->sum('monto_pagado') ?? 0;
+                ->sum('monto') ?? 0;
 
-            $saldoPendiente = $subtotal - $totalPagado;
+            $saldoPendiente = $subtotal - $totalPagadoReal;
             $estado = 'Pendiente';
             if ($saldoPendiente <= 0) {
                 $estado = 'Pagado';
-            } elseif ($totalPagado > 0) {
+            } elseif ($totalPagadoReal > 0) {
                 $estado = 'Parcial';
             }
 
             DB::table('honorario')
                 ->where('id_honorario', $id)
                 ->update([
-                    'total_pagado' => $totalPagado,
+                    'total_pagado' => $totalPagadoReal,
                     'saldo_pendiente' => $saldoPendiente,
                     'estado' => $estado
                 ]);
@@ -385,6 +384,9 @@ class HonorariosController extends Controller
                 'notas' => 'nullable|string|max:500'
             ]);
 
+            // Convertir tipo_pago a formato de base de datos (minúscula)
+            $metodoPagoDB = strtolower($validatedData['tipo_pago']);
+
             DB::beginTransaction();
 
             // Obtener el honorario actual
@@ -404,10 +406,10 @@ class HonorariosController extends Controller
                 ], 400);
             }
 
-            // Obtener detalles del honorario ordenados por importe (primero los más caros)
+            // Obtener detalles del honorario ordenados por ID (primeros conceptos primero)
             $detalles = DB::table('detalle_honorario')
                 ->where('id_honorario', $id)
-                ->orderBy('importe', 'desc')
+                ->orderBy('id_detalle', 'asc')
                 ->get();
 
             // Distribuir el pago entre los conceptos
@@ -480,8 +482,8 @@ class HonorariosController extends Controller
             $pagoId = DB::table('pago_honorario')->insertGetId([
                 'id_honorario' => $id,
                 'monto' => $validatedData['monto'],
-                'tipo_pago' => $validatedData['tipo_pago'],
-                'notas' => $validatedData['notas'] ?? null,
+                'metodo_pago' => $metodoPagoDB, // Usar metodo_pago en lugar de tipo_pago
+                'observaciones' => $validatedData['notas'] ?? null, // Usar observaciones en lugar de notas
                 'fecha_pago' => now()
             ]);
 
@@ -615,11 +617,54 @@ class HonorariosController extends Controller
                 return response()->json(['error' => 'Honorario no encontrado'], 404);
             }
 
+            // Obtener los detalles del honorario con columnas específicas
             $detalles = DB::table('detalle_honorario')
                 ->where('id_honorario', $id)
+                ->select(
+                    'id_detalle',
+                    'id_honorario', 
+                    'concepto',
+                    'cantidad',
+                    'precio_unitario',
+                    'importe',
+                    'fecha_pago',
+                    'monto_pagado',
+                    'tipo_pago'
+                )
                 ->get();
 
-            $pdf = Pdf::loadView('honorarios.pdf', compact('honorario', 'detalles'));
+            if ($detalles->isEmpty()) {
+                return response()->json(['error' => 'No se encontraron detalles válidos para este honorario'], 404);
+            }
+
+            // Recalcular el subtotal basado en los detalles actuales
+            $subtotalActual = $detalles->sum('importe');
+            
+            // Actualizar el subtotal en la tabla honorario si es diferente
+            if ($subtotalActual != $honorario->subtotal) {
+                DB::table('honorario')
+                    ->where('id_honorario', $id)
+                    ->update(['subtotal' => $subtotalActual]);
+                $honorario->subtotal = $subtotalActual;
+            }
+
+            // Obtener historial de pagos realizados
+            $pagos = DB::table('pago_honorario')
+                ->where('id_honorario', $id)
+                ->orderBy('fecha_pago', 'asc')
+                ->get();
+
+            // Calcular suma real de pagos desde el historial
+            $totalPagadoReal = $pagos->sum('monto');
+            
+            // Calcular información de pagos
+            $saldoPendiente = $honorario->subtotal - $totalPagadoReal;
+            $porcentajePagado = $honorario->subtotal > 0 ? ($totalPagadoReal / $honorario->subtotal * 100) : 0;
+
+            // Recalcular la distribución de pagos en tiempo real
+            $detallesConEstado = $this->calcularEstadoPagosDetalles($detalles, $pagos);
+
+            $pdf = Pdf::loadView('honorarios.pdf', compact('honorario', 'detallesConEstado', 'pagos', 'totalPagadoReal', 'saldoPendiente', 'porcentajePagado'));
             
             $filename = "honorario_{$id}_" . date('Y-m-d') . ".pdf";
             
@@ -697,5 +742,47 @@ class HonorariosController extends Controller
                 'message' => 'Error al obtener conceptos: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Calcular el estado de pago de cada detalle basado en los datos reales de la tabla
+     * Usa los valores monto_pagado, fecha_pago, tipo_pago guardados en detalle_honorario
+     */
+    private function calcularEstadoPagosDetalles($detalles, $pagos)
+    {
+        // Asegurar que tenemos colecciones
+        $detalles = collect($detalles);
+
+        // Procesar cada detalle usando los datos reales de la base de datos
+        $detallesConEstado = $detalles->map(function($detalle) {
+            $montoConcepto = (float) $detalle->importe;
+            
+            // Usar los valores reales de la tabla detalle_honorario
+            $montoPagadoReal = (float) ($detalle->monto_pagado ?? 0);
+            
+            // Mantener los valores originales de la tabla
+            $detalle->monto_pagado_calculado = $montoPagadoReal;
+            
+            // Asegurar que TODAS las propiedades necesarias estén definidas
+            $detalle->fecha_pago = $detalle->fecha_pago ?? null;
+            $detalle->tipo_pago = $detalle->tipo_pago ?? null;
+            $detalle->monto_pagado = $detalle->monto_pagado ?? 0;
+
+            // Calcular estado de pago basado en el monto real pagado
+            if ($montoPagadoReal >= $montoConcepto) {
+                $detalle->estado_pago = 'Pagado';
+            } elseif ($montoPagadoReal > 0) {
+                $detalle->estado_pago = 'Parcial';
+            } else {
+                $detalle->estado_pago = 'Pendiente';
+            }
+
+            // Calcular saldo restante
+            $detalle->saldo_concepto = $montoConcepto - $montoPagadoReal;
+            
+            return $detalle;
+        });
+
+        return $detallesConEstado;
     }
 }
