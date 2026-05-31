@@ -41,6 +41,11 @@ function abrirModalPropietario() {
     modal.style.display = 'flex';
     document.getElementById('modal-propietario-titulo').textContent = 'Nuevo Propietario';
     document.getElementById('form-propietario').reset();
+
+        const eliminarBtn = document.getElementById('btn-eliminar-propietario');
+        if (eliminarBtn) {
+                eliminarBtn.style.display = 'none';
+        }
     
     // Establecer fecha actual por defecto
     const fechaInput = document.getElementById('propietario-fecha');
@@ -274,6 +279,10 @@ function editarPropietario(id) {
     document.getElementById('propietario-telefono').value = propietario.telefono || '';
     document.getElementById('propietario-email').value = propietario.correo_electronico || '';
     document.getElementById('propietario-direccion').value = propietario.direccion || '';
+        const eliminarBtn = document.getElementById('btn-eliminar-propietario');
+        if (eliminarBtn) {
+            eliminarBtn.style.display = 'inline-flex';
+        }
         const estadoInput = document.getElementById('propietario-estado');
         if (estadoInput) {
             estadoInput.disabled = false;
@@ -324,30 +333,47 @@ if (propietario.fecha_registro) {
   });
 }
 
-// Función adicional para eliminar propietario (opcional)
-function eliminarPropietario(id) {
-  if (confirm('¿Estás seguro de que deseas eliminar este propietario?')) {
-    fetch(`/recepcion/propietarios/${id}`, {
+async function eliminarPropietario(id) {
+    if (!id) {
+        alert('No se pudo identificar el propietario a eliminar');
+        return;
+    }
+
+    const confirmado = confirm('¿Está seguro de eliminar este propietario?');
+    if (!confirmado) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/recepcion/propietarios/${id}`, {
             credentials: 'include',
-      method: 'DELETE',
-      headers: {
-        'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-      }
-    })
-    .then(response => {
-      if (!response.ok) throw new Error('Error al eliminar');
-      return response.json();
-    })
-    .then(data => {
-      alert(data.message || 'Propietario eliminado correctamente');
-      location.reload();
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      alert('Error al eliminar el propietario');
-    });
-  }
+            method: 'DELETE',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
+            }
+        });
+
+        const contentType = response.headers.get('content-type') || '';
+        const payload = contentType.includes('application/json') ? await response.json() : null;
+
+        if (!response.ok) {
+            throw new Error(payload?.message || 'Error al eliminar');
+        }
+
+        cerrarModalPropietario();
+        alert(payload?.message || 'Propietario eliminado correctamente');
+
+        if (typeof buscarPropietarios === 'function') {
+            await buscarPropietarios();
+        } else {
+            location.reload();
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al eliminar el propietario: ' + error.message);
+    }
 }
 
 function cerrarModalVerPropietario() {

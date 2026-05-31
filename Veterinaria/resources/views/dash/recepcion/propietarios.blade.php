@@ -152,6 +152,13 @@
         </form>
       </div>
       <div class="modal-footer">
+          <button type="button"
+              class="btn-danger"
+                  id="btn-eliminar-propietario"
+                  style="display: none;"
+                  onclick="eliminarPropietario(document.getElementById('propietario-id').value)">
+            Eliminar
+          </button>
           <button type="button" class="btn-secondary" onclick="cerrarModalPropietario()">Cancelar</button>
           <button type="button" class="btn-primary" onclick="guardarPropietario()">Guardar Propietario</button>
       </div>

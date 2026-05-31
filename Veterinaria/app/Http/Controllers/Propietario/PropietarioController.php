@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use App\Models\Propietario\Propietario;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class PropietarioController extends Controller
 {
@@ -57,46 +58,55 @@ class PropietarioController extends Controller
             'required',
             'string',
             'max:30',
-            'regex:/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/'
+            'regex:/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/',
+            'unique:propietario,nombre'
         ],
 
         'telefono' => [
             'required',
-         
-            'regex:/^[0-9]{10}$/'
+            'regex:/^[0-9]{10}$/',
+            'unique:propietario,telefono'
         ],
 
         'direccion' => [
-            'nullable',
+            'required',
             'string',
             'min:10',
-            'max:255'
+            'max:255',
+            'unique:propietario,direccion'
         ],
 
         'correo_electronico' => [
-            'nullable',
+            'required',
             'email',
-            'max:255'
+            'max:255',
+            'unique:propietario,correo_electronico'
         ]
     ],
     [
         'nombre.required' => 'El nombre del propietario es obligatorio.',
         'nombre.max' => 'El nombre no puede exceder 30 caracteres.',
         'nombre.regex' => 'El nombre solo puede contener letras y espacios.',
+        'nombre.unique' => 'Ya existe un propietario con ese nombre.',
 
         'telefono.required' => 'El teléfono es obligatorio.',
         'telefono.regex' => 'El teléfono debe contener exactamente 10 dígitos numéricos.',
+        'telefono.unique' => 'Ya existe un propietario con ese teléfono.',
 
+        'direccion.required' => 'La dirección del propietario es obligatoria.',
         'direccion.min' => 'La dirección debe contener al menos 10 caracteres.',
         'direccion.max' => 'La dirección no puede exceder 255 caracteres.',
+        'direccion.unique' => 'Ya existe un propietario con esa dirección.',
 
+        'correo_electronico.required' => 'El correo electrónico es obligatorio.',
         'correo_electronico.email' => 'Ingrese un correo electrónico válido.',
-        'correo_electronico.max' => 'El correo electrónico no puede exceder 255 caracteres.'
+        'correo_electronico.max' => 'El correo electrónico no puede exceder 255 caracteres.',
+        'correo_electronico.unique' => 'Ya existe un propietario con ese correo electrónico.'
     ]
 );
             
             // Verificar qué columnas existen en la tabla
-            $columns = \DB::select("SHOW COLUMNS FROM propietario");
+            $columns = DB::select("SHOW COLUMNS FROM propietario");
             $columnNames = array_column($columns, 'Field');
             
             // Preparar datos solo con columnas que existen
@@ -107,10 +117,10 @@ class PropietarioController extends Controller
             if (in_array('correo_electronico', $columnNames)) $data['correo_electronico'] = $validated['correo_electronico'] ?? '';
             
             // Insertar solo los campos que existen
-            $id = \DB::table('propietario')->insertGetId($data);
+            $id = DB::table('propietario')->insertGetId($data);
             
             // Obtener el propietario creado
-            $propietario = \DB::table('propietario')->where('id_propietario', $id)->first();
+            $propietario = DB::table('propietario')->where('id_propietario', $id)->first();
 
             return response()->json([
                 'success' => true,
@@ -172,25 +182,29 @@ public function update(Request $request, string $id)
                     'required',
                     'string',
                     'max:30',
-                    'regex:/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/'
+                    'regex:/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/',
+                    Rule::unique('propietario', 'nombre')->ignore($id, 'id_propietario')
                 ],
 
                 'telefono' => [
                     'required',
-                    'regex:/^[0-9]{10}$/'
+                    'regex:/^[0-9]{10}$/',
+                    Rule::unique('propietario', 'telefono')->ignore($id, 'id_propietario')
                 ],
 
                 'direccion' => [
-                    'nullable',
+                    'required',
                     'string',
                     'min:10',
-                    'max:255'
+                    'max:255',
+                    Rule::unique('propietario', 'direccion')->ignore($id, 'id_propietario')
                 ],
 
                 'correo_electronico' => [
-                    'nullable',
+                    'required',
                     'email',
-                    'max:255'
+                    'max:255',
+                    Rule::unique('propietario', 'correo_electronico')->ignore($id, 'id_propietario')
                 ],
 
                 'estado' => [
@@ -202,15 +216,21 @@ public function update(Request $request, string $id)
                 'nombre.required' => 'El nombre del propietario es obligatorio.',
                 'nombre.max' => 'El nombre no puede exceder 30 caracteres.',
                 'nombre.regex' => 'El nombre solo puede contener letras y espacios.',
+                'nombre.unique' => 'Ya existe un propietario con ese nombre.',
 
                 'telefono.required' => 'El teléfono es obligatorio.',
                 'telefono.regex' => 'El teléfono debe contener exactamente 10 dígitos numéricos.',
+                'telefono.unique' => 'Ya existe un propietario con ese teléfono.',
 
+                'direccion.required' => 'La dirección del propietario es obligatoria.',
                 'direccion.min' => 'La dirección debe contener al menos 10 caracteres.',
                 'direccion.max' => 'La dirección no puede exceder 255 caracteres.',
+                'direccion.unique' => 'Ya existe un propietario con esa dirección.',
 
+                'correo_electronico.required' => 'El correo electrónico es obligatorio.',
                 'correo_electronico.email' => 'Ingrese un correo electrónico válido.',
                 'correo_electronico.max' => 'El correo electrónico no puede exceder 255 caracteres.',
+                'correo_electronico.unique' => 'Ya existe un propietario con ese correo electrónico.',
 
                 'estado.required' => 'Debe seleccionar un estado para el propietario.',
                 'estado.boolean' => 'El estado del propietario no es válido.'
@@ -251,7 +271,28 @@ public function update(Request $request, string $id)
      */
     public function destroy(string $id)
     {
-        //
+        try {
+            $propietario = Propietario::findOrFail($id);
+            $propietario->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Propietario eliminado correctamente'
+            ]);
+        } catch (
+            \Illuminate\Database\Eloquent\ModelNotFoundException $e
+        ) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El propietario no existe'
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar el propietario',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
 
