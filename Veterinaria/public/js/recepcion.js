@@ -85,21 +85,7 @@
         }
       });
       
-      // Simulate loading data (for demo purposes)
-      setTimeout(() => {
-        // In a real application, you would fetch this data from your server
-        const stats = {
-          propietarios: 24,
-          mascotas: 37,
-          citasHoy: 5,
-          hospitalizaciones: 2
-        };
-        
-        document.querySelectorAll('.stat-value')[0].textContent = stats.propietarios;
-        document.querySelectorAll('.stat-value')[1].textContent = stats.mascotas;
-        document.querySelectorAll('.stat-value')[2].textContent = stats.citasHoy;
-        document.querySelectorAll('.stat-value')[3].textContent = stats.hospitalizaciones;
-      }, 1000);
+      // Dashboard data is loaded by each module (home.blade), avoid overriding real API values here.
 
       // Funcionalidades específicas para módulo de médicos
 function initModuloMedicos() {

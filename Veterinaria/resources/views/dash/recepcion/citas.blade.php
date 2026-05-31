@@ -517,6 +517,10 @@ async function guardarCita() {
         const data = contentType && contentType.includes('application/json') ? await response.json() : {};
         showNotification(data.message || (citaId ? 'Cita actualizada' : 'Cita creada'), 'success');
         cerrarModalCita();
+        // Actualizar dashboard si la función está disponible
+        if (typeof cargarDashboard === 'function') {
+            try { cargarDashboard(); } catch (e) { console.warn('cargarDashboard falló:', e); }
+        }
     } catch (e) {
         console.error(e);
         showNotification('Error al guardar la cita: ' + e.message, 'error');

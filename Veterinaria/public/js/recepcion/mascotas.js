@@ -243,9 +243,14 @@ async function guardarMascota() {
         // Cerrar modal y mostrar mensaje
         cerrarModalMascota();
         alert(mascotaId ? 'Mascota actualizada correctamente' : 'Mascota guardada correctamente');
-        
-        // Recargar la página para ver los cambios
-        location.reload();
+
+        // Si la función cargarDashboard() está disponible (estamos en el home), actualizar el dashboard sin recargar
+        if (typeof cargarDashboard === 'function') {
+            try { cargarDashboard(); } catch (e) { console.warn('cargarDashboard falló:', e); location.reload(); }
+        } else {
+            // Si no está disponible, recargamos para asegurar consistencia
+            location.reload();
+        }
         
     } catch (error) {
         console.error('Error:', error);
