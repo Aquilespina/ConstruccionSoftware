@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Propietario\Propietario;
 use App\Models\Receta\Receta;
+use App\Models\Cita\Cita;
 
 class Mascota extends Model
 {
@@ -61,4 +62,13 @@ public function propietario(): BelongsTo
         $propietarios = Propietario::select('id', 'nombre')->get();
         return response()->json($propietarios);
     }
+
+   public function citas()
+{
+    return $this->hasMany(
+        Cita::class,
+        'id_mascota',
+        'id_mascota'
+    );
+}
 }

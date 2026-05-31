@@ -1,17 +1,39 @@
-document.addEventListener('DOMContentLoaded', function() {
-  const btnNuevo = document.getElementById('btn-nuevo-propietario');
-  if (btnNuevo) btnNuevo.addEventListener('click', abrirModalPropietario);
-  
-  // Cerrar modal al hacer clic fuera del contenido
-  const modal = document.getElementById('modal-propietario');
-  if (modal) {
-    modal.addEventListener('click', function(e) {
-      if (e.target === modal) {
-        cerrarModalPropietario();
-      }
-    });
-  }
-});
+function inicializarPropietarios() {
+    const btnNuevo = document.getElementById('btn-nuevo-propietario');
+    if (btnNuevo && !btnNuevo.dataset.listenerAsignado) {
+        btnNuevo.addEventListener('click', abrirModalPropietario);
+        btnNuevo.dataset.listenerAsignado = '1';
+    }
+
+    // Cerrar modal al hacer clic fuera del contenido
+    const modal = document.getElementById('modal-propietario');
+    if (modal && !modal.dataset.listenerAsignado) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                cerrarModalPropietario();
+            }
+        });
+        modal.dataset.listenerAsignado = '1';
+    }
+
+    const input = document.getElementById('search-propietarios');
+    if (input && !input.dataset.listenerAsignado) {
+        input.addEventListener('input', buscarPropietarios);
+        input.dataset.listenerAsignado = '1';
+    }
+
+    const filtroEstado = document.getElementById('filter-estado-propietarios');
+    if (filtroEstado && !filtroEstado.dataset.listenerAsignado) {
+        filtroEstado.addEventListener('change', buscarPropietarios);
+        filtroEstado.dataset.listenerAsignado = '1';
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', inicializarPropietarios);
+} else {
+    inicializarPropietarios();
+}
 
 function abrirModalPropietario() {
   const modal = document.getElementById('modal-propietario');
@@ -25,6 +47,12 @@ function abrirModalPropietario() {
     if (fechaInput) {
       fechaInput.value = new Date().toISOString().split('T')[0];
     }
+
+        const estadoInput = document.getElementById('propietario-estado');
+        if (estadoInput) {
+            estadoInput.value = '1';
+            estadoInput.disabled = true;
+        }
     
     // Asegurarse de que el método sea POST para nuevo
     const form = document.getElementById('form-propietario');
@@ -59,15 +87,17 @@ async function guardarPropietario() {
     if (!nombre.trim()) {
         alert('El nombre es requerido');
         return;
-    }
+    }if (!form.checkValidity()) {
+    form.reportValidity();
+    return;
+}
     
     const url = form.getAttribute('action');
     const formData = new FormData(form);
 
     try {
-        console.log('Enviando propietario a:', url);
-        
         const response = await fetch(url, {
+            credentials: 'include',
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -86,20 +116,23 @@ async function guardarPropietario() {
             try {
                 if (contentType && contentType.includes('application/json')) {
                     const errorData = await response.json();
-                    errorMessage = errorData.message || errorData.errors || errorMessage;
-                } else {
-                    const textResponse = await response.text();
-                    console.error('Respuesta de error (HTML):', textResponse.substring(0, 500));
-                    
-                    // Si es HTML, podría ser redirección de login
-                    if (textResponse.includes('login') || response.status === 419) {
-                        errorMessage = 'Error de autenticación. Por favor, inicie sesión nuevamente.';
-                    } else if (response.status === 422) {
-                        errorMessage = 'Error de validación. Verifique los datos ingresados.';
-                    } else if (response.status === 500) {
-                        errorMessage = 'Error interno del servidor. Contacte al administrador.';
-                    }
-                }
+
+    if (errorData.errors) {
+
+        let mensajes = [];
+
+        Object.values(errorData.errors).forEach(error => {
+            mensajes.push(error[0]);
+        });
+
+        errorMessage = mensajes.join('\n');
+
+    } else {
+
+        errorMessage = errorData.message || errorMessage;
+
+    }
+}
             } catch (parseError) {
                 console.error('Error parseando respuesta:', parseError);
             }
@@ -131,16 +164,88 @@ async function guardarPropietario() {
     }
 }
 
+
 function verPropietario(id) {
-  // Lógica para ver detalles del propietario
-  console.log('Ver propietario:', id);
-  alert(`Funcionalidad de ver detalles para el propietario ID: ${id}`);
+
+    fetch(`/recepcion/propietarios/${id}`, {
+        credentials: 'include',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => {
+
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+
+        return response.json();
+    })
+    .then(propietario => {
+
+        document.getElementById('ver-nombre').value =
+            propietario.nombre || '';
+
+        document.getElementById('ver-telefono').value =
+            propietario.telefono || '';
+
+        document.getElementById('ver-correo').value =
+            propietario.correo_electronico || '';
+
+        document.getElementById('ver-direccion').value =
+            propietario.direccion || '';
+
+        document.getElementById('ver-fecha').value =
+            propietario.fecha_registro || '';
+
+        let mascotasHtml = '';
+
+        if (propietario.mascotas &&
+            propietario.mascotas.length > 0) {
+
+            propietario.mascotas.forEach(mascota => {
+
+                mascotasHtml += `
+                    <tr>
+                        <td>${mascota.nombre ?? 'N/A'}</td>
+                        <td>${mascota.especie ?? 'N/A'}</td>
+                        <td>${mascota.citas ? mascota.citas.length : 0}</td>
+                    </tr>
+                `;
+            });
+
+        } else {
+
+            mascotasHtml = `
+                <tr>
+                    <td colspan="3">
+                        No hay mascotas registradas
+                    </td>
+                </tr>
+            `;
+        }
+
+        document.getElementById(
+            'tabla-mascotas-propietario'
+        ).innerHTML = mascotasHtml;
+
+        document.getElementById(
+            'modal-ver-propietario'
+        ).style.display = 'flex';
+    })
+    .catch(error => {
+
+        alert(
+            'Error al cargar los datos del propietario: '
+            + error.message
+        );
+    });
 }
+
 
 function editarPropietario(id) {
   // Lógica para editar propietario
-  console.log('Editar propietario:', id);
-  
   // Mostrar loading
   const modal = document.getElementById('modal-propietario');
   if (modal) {
@@ -149,34 +254,46 @@ function editarPropietario(id) {
   }
   
   // Primero, obtener los datos del propietario
-  fetch(`/recepcion/propietarios/${id}`, {
+    fetch(`/recepcion/propietarios/${id}`, {
+        credentials: 'include',
     headers: {
       'X-Requested-With': 'XMLHttpRequest',
       'Accept': 'application/json'
     }
   })
   .then(response => {
-    console.log('Response status:', response.status);
     if (!response.ok) {
       throw new Error(`Error HTTP: ${response.status}`);
     }
     return response.json();
   })
   .then(propietario => {
-    console.log('Datos recibidos:', propietario);
-    
     // Llenar el formulario con los datos del propietario
     document.getElementById('propietario-id').value = propietario.id_propietario;
     document.getElementById('propietario-nombre').value = propietario.nombre || '';
     document.getElementById('propietario-telefono').value = propietario.telefono || '';
     document.getElementById('propietario-email').value = propietario.correo_electronico || '';
     document.getElementById('propietario-direccion').value = propietario.direccion || '';
+        const estadoInput = document.getElementById('propietario-estado');
+        if (estadoInput) {
+            estadoInput.disabled = false;
+            estadoInput.value = propietario.estado ? '1' : '0';
+        }
     
     // Formatear fecha para el input date
-    if (propietario.fecha_registro) {
-      const fecha = new Date(propietario.fecha_registro);
-      document.getElementById('propietario-fecha').value = fecha.toISOString().split('T')[0];
+if (propietario.fecha_registro) {
+    const fechaInput = document.getElementById('propietario-fecha');
+
+    if (fechaInput) {
+        const fecha = new Date(propietario.fecha_registro);
+
+        if ('value' in fechaInput) {
+            fechaInput.value = fecha.toISOString().split('T')[0];
+        } else {
+            fechaInput.textContent = fecha.toLocaleDateString('es-MX');
+        }
     }
+}
     
     // Cambiar la acción del formulario para update
     const form = document.getElementById('form-propietario');
@@ -211,6 +328,7 @@ function editarPropietario(id) {
 function eliminarPropietario(id) {
   if (confirm('¿Estás seguro de que deseas eliminar este propietario?')) {
     fetch(`/recepcion/propietarios/${id}`, {
+            credentials: 'include',
       method: 'DELETE',
       headers: {
         'X-Requested-With': 'XMLHttpRequest',
@@ -230,4 +348,124 @@ function eliminarPropietario(id) {
       alert('Error al eliminar el propietario');
     });
   }
+}
+
+function cerrarModalVerPropietario() {
+
+    const modal = document.getElementById('modal-ver-propietario');
+
+    if (modal) {
+        modal.style.display = 'none';
+    }
+
+    document.getElementById('ver-nombre').value = '';
+    document.getElementById('ver-telefono').value = '';
+    document.getElementById('ver-correo').value = '';
+    document.getElementById('ver-fecha').value = '';
+    document.getElementById('ver-direccion').value = '';
+
+    const tablaMascotas =
+        document.getElementById('tabla-mascotas-propietario');
+
+    if (tablaMascotas) {
+        tablaMascotas.innerHTML = '';
+    }
+}
+
+    async function buscarPropietarios() {
+        const input = document.getElementById('search-propietarios');
+            const filtroEstado = document.getElementById('filter-estado-propietarios');
+        if (!input) {
+            return;
+        }
+
+        const texto = input.value;
+            const estado = filtroEstado ? filtroEstado.value : '';
+
+    const response = await fetch(
+            `/recepcion/propietarios/buscar?q=${encodeURIComponent(texto)}&estado=${encodeURIComponent(estado)}`,
+            {
+            credentials: 'include'
+            }
+    );
+
+    const data = await response.json();
+    actualizarTablaPropietarios(data);
+    
+}
+
+function actualizarTablaPropietarios(propietarios) {
+
+    const tbody =
+        document.getElementById('tabla-propietarios');
+
+    tbody.innerHTML = '';
+
+    if (propietarios.length === 0) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7">
+                    No se encontraron resultados
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+    propietarios.forEach(propietario => {
+
+tbody.innerHTML += `
+<tr>
+    <td>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="user-avatar">
+                ${propietario.nombre ? propietario.nombre.substring(0,2).toUpperCase() : 'NA'}
+            </div>
+            <div>
+                <div style="font-weight: 600;">
+                    ${propietario.nombre ?? 'N/A'}
+                </div>
+                <div style="font-size: 12px; color: #64748b;">
+                    ID: PRO${String(propietario.id_propietario).padStart(3, '0')}
+                </div>
+            </div>
+        </div>
+    </td>
+
+    <td>${propietario.telefono ?? 'N/A'}</td>
+
+    <td>${propietario.correo_electronico ?? 'N/A'}</td>
+
+    <td>${propietario.direccion ?? 'N/A'}</td>
+
+    <td>
+        <span>
+            ${propietario.estado ? 'Activo' : 'Inactivo'}
+        </span>
+    </td>
+
+    <td>
+        ${propietario.fecha_registro
+            ? new Date(propietario.fecha_registro).toLocaleDateString('es-MX')
+            : 'N/A'}
+    </td>
+
+    <td>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn-outline"
+                onclick="verPropietario(${propietario.id_propietario})">
+                Ver
+            </button>
+
+            <button class="btn-secondary"
+                onclick="editarPropietario(${propietario.id_propietario})">
+                Editar
+            </button>
+        </div>
+    </td>
+</tr>
+`;
+    });
 }

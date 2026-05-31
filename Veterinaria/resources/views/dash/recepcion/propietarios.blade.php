@@ -15,7 +15,9 @@
         </svg>
         Nuevo Propietario
       </button>
-      <button class="btn-secondary">
+      <button class="btn-secondary"
+              type="button"
+              onclick="window.location.href='{{ route('propietarios.exportar') }}'">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
@@ -28,13 +30,13 @@
   
   <div class="filters-bar">
     <div class="search-filter">
-      <input type="text" placeholder="Buscar propietario..." class="search-input" id="search-propietarios">
+      <input type="text" placeholder="Buscar propietario o mascota " class="search-input" id="search-propietarios">
     </div>
     <div class="filter-actions">
       <select class="filter-select" id="filter-estado-propietarios">
         <option value="">Todos los estados</option>
-        <option value="activo">Activo</option>
-        <option value="inactivo">Inactivo</option>
+        <option value="1">Activo</option>
+        <option value="0">Inactivo</option>
       </select>
     </div>
   </div>
@@ -47,6 +49,7 @@
           <th>Teléfono</th>
           <th>Email</th>
           <th>Dirección</th>
+          <th>Estado</th>
           <th>Fecha Registro</th>
           <th>Acciones</th>
         </tr>
@@ -68,6 +71,11 @@
           <td>{{ $propietario->telefono ?? 'N/A' }}</td>
           <td>{{ $propietario->correo_electronico ?? 'N/A' }}</td>
           <td>{{ $propietario->direccion ?? 'N/A' }}</td>
+          <td>
+            <span class="estado-badge {{ $propietario->estado ? 'estado-activo' : 'estado-inactivo' }}">
+              {{ $propietario->estado ? 'Activo' : 'Inactivo' }}
+            </span>
+          </td>
           <td>{{ $propietario->fecha_registro ? \Carbon\Carbon::parse($propietario->fecha_registro)->format('d M Y') : 'N/A' }}</td>
           <td>
             <div style="display: flex; gap: 8px;">
@@ -78,7 +86,7 @@
         </tr>
         @empty
         <tr>
-          <td colspan="6" style="text-align: center; padding: 20px;">
+          <td colspan="7" style="text-align: center; padding: 20px;">
             No hay propietarios registrados
           </td>
         </tr>
@@ -101,32 +109,44 @@
           <div class="form-row">
             <div class="form-group">
               <label for="propietario-nombre">Nombre completo *</label>
-              <input type="text" id="propietario-nombre" name="nombre" class="form-control" required>
+              <input type="text" id="propietario-nombre" name="nombre" class="form-control" required  maxlength="30"
+    oninput="this.value=this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g,'')">
             </div>
             <div class="form-group">
               <label for="propietario-telefono">Teléfono</label>
-              <input type="tel" id="propietario-telefono" name="telefono" class="form-control">
+              <input type="tel" id="propietario-telefono" name="telefono" class="form-control" required 
+    maxlength="10"
+    oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)">
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
               <label for="propietario-email">Email</label>
-              <input type="email" id="propietario-email" name="correo_electronico" class="form-control">
+              <input type="email" id="propietario-email" name="correo_electronico" class="form-control"  required maxlength="255"
+    placeholder="ejemplo@correo.com">
+
             </div>
             <div class="form-group">
               <label for="propietario-direccion">Dirección</label>
-              <textarea id="propietario-direccion" name="direccion" class="form-control" rows="2"></textarea>
+              <textarea id="propietario-direccion" name="direccion" class="form-control" required rows="2"
+    maxlength="255"></textarea>
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
               <label for="propietario-fecha">Fecha Registro</label>
-              <input type="date" id="propietario-fecha" name="fecha_registro" class="form-control">
+                <input
+        type="text"
+        id="propietario-fecha"
+        class="form-control"
+        readonly>
             </div>
-            <div class="form-group" style="visibility: hidden;">
-              <!-- Espacio reservado para mantener el layout -->
-              <label>&nbsp;</label>
-              <input type="text" class="form-control" style="visibility: hidden;">
+            <div class="form-group">
+              <label for="propietario-estado">Estado</label>
+              <select id="propietario-estado" name="estado" class="form-control" disabled>
+                <option value="1">Activo</option>
+                <option value="0">Inactivo</option>
+              </select>
             </div>
           </div>
         </form>
@@ -137,6 +157,83 @@
       </div>
     </div>
   </div>
+
+
+  
+  <!-- Modal para ver  propietario -->
+  <div id="modal-ver-propietario" class="modal" style="display:none;">
+    <div class="modal-content">
+
+        <div class="modal-header">
+            <h3>Detalle del Propietario</h3>
+            <button class="modal-close" onclick="cerrarModalVerPropietario()">
+                &times;
+            </button>
+        </div>
+
+        <div class="modal-body">
+
+<div class="form-row">
+    <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" id="ver-nombre" class="form-control campo-solo-lectura" readonly>
+    </div>
+
+    <div class="form-group">
+        <label>Teléfono</label>
+        <input type="text" id="ver-telefono" class="form-control campo-solo-lectura" readonly>
+    </div>
+</div>
+
+<div class="form-row">
+    <div class="form-group">
+        <label>Correo</label>
+        <input type="text" id="ver-correo" class="form-control campo-solo-lectura" readonly>
+    </div>
+
+    <div class="form-group">
+        <label>Fecha Registro</label>
+        <input type="text" id="ver-fecha" class="form-control campo-solo-lectura" readonly>
+    </div>
+</div>
+
+<div class="form-group">
+    <label>Dirección</label>
+    <textarea
+        id="ver-direccion"
+        class="form-control campo-solo-lectura"
+        rows="2"
+        readonly></textarea>
+</div>
+
+            <hr>
+
+            <h4>Mascotas Registradas</h4>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Especie</th>
+                        <th>Citas</th>
+                    </tr>
+                </thead>
+
+                <tbody id="tabla-mascotas-propietario">
+                </tbody>
+            </table>
+
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-secondary"
+                    onclick="cerrarModalVerPropietario()">
+                Cerrar
+            </button>
+        </div>
+
+    </div>
+</div>
 </section>
 
 <script src="{{ asset('js/recepcion/propietarios.js') }}"></script>

@@ -358,3 +358,17 @@
         margin: 20px;
       }
     }
+
+.campo-solo-lectura {
+    background-color: #f8fafc !important;
+    cursor: default !important;
+    pointer-events: none;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+}
+
+.campo-solo-lectura:focus {
+    outline: none;
+    box-shadow: none;
+    border-color: #e2e8f0;
+}

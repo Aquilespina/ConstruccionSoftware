@@ -16,7 +16,7 @@ class Propietario extends Model
     // id_propietario es autoincrement BIGINT según la migración
     public $incrementing = true;
     protected $keyType = 'int';
-    public $timestamps = true;
+    public $timestamps = false;
 
     protected $fillable = [
         'nombre',
@@ -24,7 +24,9 @@ class Propietario extends Model
         'direccion',
         'correo_electronico',
         'fecha_registro',
+        'estado',
     ];
+
 
     public function mascotas(): HasMany
     {

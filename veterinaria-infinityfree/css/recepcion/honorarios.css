@@ -1,0 +1,5 @@
+/* Estilos para Honorarios */
+#mod-honorarios { padding: 16px; }
+.stat-card { background:#fff; border-radius:8px; padding:12px; box-shadow:0 1px 2px rgba(0,0,0,0.03); }
+.stat-value{ font-size:20px; font-weight:700; }
+.table-container .data-table td{ vertical-align:middle; }
