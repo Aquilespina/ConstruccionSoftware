@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use App\Models\Cita\Cita;
 
 class DashboardController extends Controller
@@ -14,6 +15,9 @@ class DashboardController extends Controller
     {
         $hoy = Carbon::today();
         $inicioMes = Carbon::now()->startOfMonth();
+        $propietarioTable = $this->propietarioTable();
+        $timeColumn = $this->citaTimeColumn();
+        $propietarioNameSql = $this->propietarioNameSql($propietarioTable);
 
         // Conteos
         $citasHoy = Cita::whereDate('fecha', $hoy)->count();
@@ -37,79 +41,78 @@ class DashboardController extends Controller
             ->whereDate('fecha_ingreso', '>', $hoy->toDateString())
             ->count();
 
-        // Próximas citas (hoy en adelante)
-        $proximasCitas = Cita::with(['mascota.propietario'])
-            ->whereDate('fecha', '>=', $hoy)
-            ->orderBy('fecha')
-            ->orderBy('horario')
+        $citasBase = DB::table('cita as c')
+            ->join('mascota as m', 'c.id_mascota', '=', 'm.id_mascota')
+            ->join($propietarioTable . ' as p', 'm.id_propietario', '=', 'p.id_propietario')
+            ->selectRaw(
+                "c.fecha as fecha, c.$timeColumn as hora, m.nombre as paciente, $propietarioNameSql, c.estado as estado"
+            )
+            ->whereDate('c.fecha', '>=', $hoy->toDateString());
+
+        // Próximas citas (hoy en adelante, cualquier estado)
+        $proximasCitas = (clone $citasBase)
+            ->orderBy('c.fecha')
+            ->orderBy('c.' . $timeColumn)
             ->limit(5)
             ->get()
-            ->map(function ($c) {
-                return [
-                    'hora' => $c->horario,
-                    'fecha' => optional($c->fecha)->format('Y-m-d'),
-                    'paciente' => $c->mascota->nombre ?? '-',
-                    'propietario' => optional(optional($c->mascota)->propietario)->nombre_completo ?? '-',
-                    'estado' => $c->estado,
-                ];
-            });
+            ->map(fn ($c) => [
+                'hora' => $c->hora,
+                'fecha' => Carbon::parse($c->fecha)->format('Y-m-d'),
+                'paciente' => $c->paciente ?? '-',
+                'propietario' => $c->propietario ?? '-',
+                'estado' => strtoupper((string) ($c->estado ?? '')),
+            ]);
 
-        // Pacientes en espera (asumimos Programada hoy)
-        $pacientesEspera = Cita::with(['mascota.propietario'])
-            ->whereDate('fecha', $hoy)
-            ->where('estado', 'Programada')
-            ->orderBy('horario')
+        // Pacientes en espera (citas programadas)
+        $pacientesEspera = (clone $citasBase)
+            ->whereRaw('LOWER(c.estado) = ?', ['programada'])
+            ->orderBy('c.fecha')
+            ->orderBy('c.' . $timeColumn)
             ->limit(5)
             ->get()
-            ->map(function ($c) {
-                return [
-                    'llego' => $c->horario, // placeholder de llegada
-                    'paciente' => $c->mascota->nombre ?? '-',
-                    'propietario' => optional(optional($c->mascota)->propietario)->nombre_completo ?? '-',
-                    'estado' => 'En espera',
-                ];
-            });
+            ->map(fn ($c) => [
+                'llego' => $c->hora,
+                'paciente' => $c->paciente ?? '-',
+                'propietario' => $c->propietario ?? '-',
+                'estado' => 'En espera',
+            ]);
 
-        // Flujo clínico diario (base solicitada): citas + espera
-        $citasFlujo = Cita::with(['mascota.propietario'])
-            ->whereDate('fecha', '>=', $hoy)
-            ->where('estado', '!=', 'Programada')
-            ->orderBy('horario')
+        // Flujo clínico diario: citas atendidas/completadas + esperas programadas
+        $citasFlujo = (clone $citasBase)
+            ->whereRaw('LOWER(c.estado) != ?', ['programada'])
+            ->orderBy('c.fecha')
+            ->orderBy('c.' . $timeColumn)
             ->limit(20)
             ->get();
 
-        $esperaFlujo = Cita::with(['mascota.propietario'])
-            ->whereDate('fecha', '>=', $hoy)
-            ->where('estado', 'Programada')
-            ->orderBy('horario')
+        $esperaFlujo = (clone $citasBase)
+            ->whereRaw('LOWER(c.estado) = ?', ['programada'])
+            ->orderBy('c.fecha')
+            ->orderBy('c.' . $timeColumn)
             ->limit(20)
             ->get();
 
-        $flujoDiario = $citasFlujo->map(function ($cita) {
-            $propietario = optional(optional($cita->mascota)->propietario);
-            return [
-                'fecha' => optional($cita->fecha)->format('Y-m-d'),
-                'hora' => $cita->horario,
-                'paciente' => $cita->mascota->nombre ?? '-',
-                'propietario' => ($propietario->nombre_completo ?? $propietario->nombre ?? '-'),
+        $flujoDiario = collect($citasFlujo)
+            ->map(fn ($cita) => [
+                'fecha' => Carbon::parse($cita->fecha)->format('Y-m-d'),
+                'hora' => $cita->hora,
+                'paciente' => $cita->paciente ?? '-',
+                'propietario' => $cita->propietario ?? '-',
                 'tipo' => 'CITA',
                 'estado' => strtoupper((string) ($cita->estado ?? 'PROGRAMADA')),
-            ];
-        })->merge(
-            $esperaFlujo->map(function ($p) {
-                $propietario = optional(optional($p->mascota)->propietario);
-                return [
-                    'fecha' => optional($p->fecha)->format('Y-m-d'),
-                    'hora' => $p->horario,
-                    'paciente' => $p->mascota->nombre ?? '-',
-                    'propietario' => ($propietario->nombre_completo ?? $propietario->nombre ?? '-'),
+            ])
+            ->merge(
+                collect($esperaFlujo)->map(fn ($p) => [
+                    'fecha' => Carbon::parse($p->fecha)->format('Y-m-d'),
+                    'hora' => $p->hora,
+                    'paciente' => $p->paciente ?? '-',
+                    'propietario' => $p->propietario ?? '-',
                     'tipo' => 'ESPERA',
                     'estado' => 'EN_ESPERA',
-                ];
-            })
-        )->sortBy(function ($item) {
-            return ($item['fecha'] ?? '') . ' ' . ($item['hora'] ?? '');
-        })->values();
+                ])
+            )
+            ->sortBy(fn ($item) => ($item['fecha'] ?? '') . ' ' . ($item['hora'] ?? ''))
+            ->values();
 
         return response()->json([
             'citas_hoy' => $citasHoy,
@@ -120,5 +123,24 @@ class DashboardController extends Controller
             'pacientes_espera' => $pacientesEspera,
             'flujo_diario' => $flujoDiario,
         ]);
+    }
+
+    private function propietarioTable(): string
+    {
+        return Schema::hasTable('propietarios') ? 'propietarios' : 'propietario';
+    }
+
+    private function citaTimeColumn(): string
+    {
+        return Schema::hasColumn('cita', 'hora') ? 'hora' : 'horario';
+    }
+
+    private function propietarioNameSql(string $propietarioTable): string
+    {
+        if (Schema::hasColumn($propietarioTable, 'apellido')) {
+            return "COALESCE(CONCAT(p.nombre, ' ', p.apellido), p.nombre) as propietario";
+        }
+
+        return 'p.nombre as propietario';
     }
 }
