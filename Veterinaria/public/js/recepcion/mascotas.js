@@ -25,6 +25,161 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+let mascotaDetalleActualId = null;
+
+function normalizarTextoMascota(valor, fallback = '-') {
+    if (valor === null || valor === undefined || valor === '') {
+        return fallback;
+    }
+
+    return String(valor);
+}
+
+function obtenerAvatarMascota(especie) {
+    const especieNormalizada = String(especie || '').toLowerCase();
+
+    if (especieNormalizada.includes('gat')) {
+        return '🐈';
+    }
+
+    if (especieNormalizada.includes('ave')) {
+        return '🐦';
+    }
+
+    if (especieNormalizada.includes('rep')) {
+        return '🦎';
+    }
+
+    if (especieNormalizada.includes('rod')) {
+        return '🐹';
+    }
+
+    return '🐕';
+}
+
+function mostrarTextoDetalleMascota(id, valor, fallback = '-') {
+    const elemento = document.getElementById(id);
+    if (elemento) {
+        elemento.textContent = normalizarTextoMascota(valor, fallback);
+    }
+}
+
+function mostrarEtiquetaDetalleMascota(id, texto) {
+    const elemento = document.getElementById(id);
+    if (elemento) {
+        elemento.textContent = texto;
+    }
+}
+
+function normalizarSexoMascota(sexo) {
+    const valor = String(sexo || '').trim().toLowerCase();
+
+    if (valor === 'm' || valor === 'macho' || valor === 'masculino') {
+        return 'macho';
+    }
+
+    if (valor === 'f' || valor === 'hembra' || valor === 'femenino') {
+        return 'hembra';
+    }
+
+    return '';
+}
+
+function cargarDetalleMascotaEnVista(mascota) {
+    const propietarioNombre = mascota?.propietario?.nombre || mascota?.propietario_nombre || 'Sin propietario';
+    const especie = mascota?.especie || '-';
+    const estado = mascota?.estado || '-';
+    const sexo = mascota?.sexo || '-';
+    const avatar = obtenerAvatarMascota(especie);
+
+    mostrarTextoDetalleMascota('ver-mascota-nombre', mascota?.nombre || 'Detalle de Mascota');
+    mostrarTextoDetalleMascota('ver-mascota-id', `ID: ${mascota?.id_mascota || mascota?.id || '-'}`);
+    mostrarTextoDetalleMascota('ver-mascota-especie', `Especie: ${especie}`);
+    mostrarTextoDetalleMascota('ver-mascota-estado', `Estado: ${estado}`);
+    mostrarTextoDetalleMascota('ver-mascota-raza', `Raza: ${mascota?.raza || '-'}`);
+    mostrarTextoDetalleMascota('ver-mascota-propietario', `Propietario: ${propietarioNombre}`);
+    mostrarTextoDetalleMascota('ver-mascota-sexo', sexo);
+    mostrarTextoDetalleMascota('ver-mascota-edad', mascota?.edad ?? '-');
+    mostrarTextoDetalleMascota('ver-mascota-peso', mascota?.peso !== null && mascota?.peso !== undefined && mascota?.peso !== '' ? `${mascota.peso} kg` : '-');
+    mostrarTextoDetalleMascota('ver-mascota-ultima-visita', mascota?.ultima_visita || '-');
+    mostrarTextoDetalleMascota('ver-mascota-created-at', mascota?.created_at || '-');
+    mostrarTextoDetalleMascota('ver-mascota-updated-at', mascota?.updated_at || '-');
+    mostrarTextoDetalleMascota('ver-mascota-historial', mascota?.historial_medico || 'Sin historial médico registrado.');
+    mostrarTextoDetalleMascota('ver-mascota-total-citas', mascota?.total_citas ?? 0);
+    mostrarTextoDetalleMascota('ver-mascota-avatar', avatar);
+
+    mostrarEtiquetaDetalleMascota('ver-mascota-estado', `Estado: ${estado}`);
+}
+
+function abrirModalVerMascota() {
+    const modal = document.getElementById('modal-ver-mascota');
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+}
+
+function cerrarModalVerMascota() {
+    const modal = document.getElementById('modal-ver-mascota');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function limpiarModalVerMascota() {
+    mostrarTextoDetalleMascota('ver-mascota-nombre', 'Detalle de Mascota');
+    mostrarTextoDetalleMascota('ver-mascota-id', 'ID: -');
+    mostrarTextoDetalleMascota('ver-mascota-especie', 'Especie: -');
+    mostrarTextoDetalleMascota('ver-mascota-estado', 'Estado: -');
+    mostrarTextoDetalleMascota('ver-mascota-raza', 'Raza: -');
+    mostrarTextoDetalleMascota('ver-mascota-propietario', 'Propietario: -');
+    mostrarTextoDetalleMascota('ver-mascota-sexo', '-');
+    mostrarTextoDetalleMascota('ver-mascota-edad', '-');
+    mostrarTextoDetalleMascota('ver-mascota-peso', '-');
+    mostrarTextoDetalleMascota('ver-mascota-ultima-visita', '-');
+    mostrarTextoDetalleMascota('ver-mascota-created-at', '-');
+    mostrarTextoDetalleMascota('ver-mascota-updated-at', '-');
+    mostrarTextoDetalleMascota('ver-mascota-historial', 'Sin historial médico registrado.');
+    mostrarTextoDetalleMascota('ver-mascota-total-citas', '0');
+    mostrarTextoDetalleMascota('ver-mascota-avatar', '🐾');
+}
+
+async function verMascota(id) {
+    mascotaDetalleActualId = id;
+    abrirModalVerMascota();
+    limpiarModalVerMascota();
+    mostrarTextoDetalleMascota('ver-mascota-nombre', 'Cargando...');
+    mostrarTextoDetalleMascota('ver-mascota-id', `ID: ${id}`);
+
+    try {
+        const response = await fetch(`/api/mascotas/${id}`, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('No se pudo cargar el detalle de la mascota');
+        }
+
+        const mascota = await response.json();
+        cargarDetalleMascotaEnVista(mascota);
+    } catch (error) {
+        console.error('Error cargando detalle de mascota:', error);
+        mostrarTextoDetalleMascota('ver-mascota-nombre', 'Error al cargar detalle');
+        mostrarTextoDetalleMascota('ver-mascota-historial', 'No fue posible obtener la información de la mascota.');
+        alert('No se pudo cargar el detalle de la mascota.');
+    }
+}
+
+function editarMascotaDesdeDetalle() {
+    if (!mascotaDetalleActualId) {
+        return;
+    }
+
+    cerrarModalVerMascota();
+    editarMascota(mascotaDetalleActualId);
+}
+
 // Funcionalidades específicas para módulo de mascotas
 function initModuloMascotas() {
     console.log('Inicializando módulo de mascotas...');
@@ -63,9 +218,15 @@ function initModuloMascotas() {
     
     // Cerrar modal al hacer clic fuera del contenido
     document.addEventListener('click', function(event) {
-        const modal = document.getElementById('modal-mascota');
-        if (modal && event.target === modal) {
+        const modalMascota = document.getElementById('modal-mascota');
+        const modalVerMascota = document.getElementById('modal-ver-mascota');
+
+        if (modalMascota && event.target === modalMascota) {
             cerrarModalMascota();
+        }
+
+        if (modalVerMascota && event.target === modalVerMascota) {
+            cerrarModalVerMascota();
         }
     });
     
@@ -73,6 +234,7 @@ function initModuloMascotas() {
     document.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
             cerrarModalMascota();
+            cerrarModalVerMascota();
         }
     });
 }
@@ -228,17 +390,42 @@ async function guardarMascota() {
             method: method,
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
             },
             body: JSON.stringify(mascotaData)
         });
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Error al guardar la mascota');
+            const contentType = response.headers.get('content-type') || '';
+            let errorMessage = 'Error al guardar la mascota';
+
+            if (contentType.includes('application/json')) {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorData.error || errorMessage;
+            } else {
+                const errorText = await response.text();
+                errorMessage = errorText.includes('<!DOCTYPE') || errorText.includes('<script>')
+                    ? 'El servidor devolvió una respuesta no válida. Revisa que no haya un dd() o un error 500 en el backend.'
+                    : (errorText || errorMessage);
+            }
+
+            throw new Error(errorMessage);
         }
-        
-        const result = await response.json();
+
+        const contentType = response.headers.get('content-type') || '';
+        let result = null;
+
+        if (contentType.includes('application/json')) {
+            result = await response.json();
+        } else {
+            const responseText = await response.text();
+            throw new Error(
+                responseText.includes('<!DOCTYPE') || responseText.includes('<script>')
+                    ? 'El servidor devolvió una respuesta no válida. Revisa que no haya un dd() o un error 500 en el backend.'
+                    : (responseText || 'El servidor no devolvió JSON válido')
+            );
+        }
         
         // Cerrar modal y mostrar mensaje
         cerrarModalMascota();
@@ -256,12 +443,6 @@ async function guardarMascota() {
         console.error('Error:', error);
         alert('Error al guardar la mascota: ' + error.message);
     }
-}
-
-function verMascota(id) {
-    console.log('Ver mascota:', id);
-    // Aquí puedes implementar la lógica para ver detalles completos
-    alert(`Funcionalidad de ver mascota - ID: ${id}\n\nEsta función mostraría todos los detalles de la mascota en un modal separado o página de detalle.`);
 }
 
 async function editarMascota(id) {
@@ -288,7 +469,7 @@ async function editarMascota(id) {
         document.getElementById('mascota-propietario').value = mascota.id_propietario || '';
         document.getElementById('mascota-edad').value = mascota.edad || '';
         document.getElementById('mascota-peso').value = mascota.peso || '';
-        document.getElementById('mascota-sexo').value = mascota.sexo || '';
+        document.getElementById('mascota-sexo').value = normalizarSexoMascota(mascota.sexo);
         document.getElementById('mascota-estado').value = mascota.estado || 'activo';
         
         // Llenar historial médico si existe el campo

@@ -129,7 +129,15 @@
           <div class="form-row">
             <div class="form-group">
               <label for="mascota-raza">Raza *</label>
-              <input type="text" id="mascota-raza" name="raza" class="form-control" required>
+<input
+    type="text"
+    id="mascota-raza"
+    name="raza"
+    class="form-control"
+    minlength="2"
+    maxlength="50"
+    pattern="^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s\-]+$"
+    required>
             </div>
             <div class="form-group">
               <label for="mascota-propietario">Propietario *</label>
@@ -144,11 +152,22 @@
           <div class="form-row">
             <div class="form-group">
               <label for="mascota-edad">Edad</label>
-              <input type="text" id="mascota-edad" name="edad" class="form-control" placeholder="Ej: 3 años">
-            </div>
+<input
+    type="number"
+    id="mascota-edad"
+    name="edad"
+    class="form-control"
+    min="0"
+    max="15"
+    oninput="if(this.value > 15) this.value = 15";
+    placeholder="Ej: 3">            </div>
             <div class="form-group">
               <label for="mascota-peso">Peso (kg)</label>
-              <input type="number" id="mascota-peso" name="peso" class="form-control" step="0.1">
+              <input type="number" id="mascota-peso" name="peso" class="form-control" step="0.1"
+                  min="0"
+                 max="100"
+                 oninput="if(this.value > 100) this.value = 100;"
+                 >
             </div>
           </div>
           <div class="form-row">
@@ -173,6 +192,75 @@
       <div class="modal-footer">
         <button type="button" class="btn-secondary" onclick="cerrarModalMascota()">Cancelar</button>
         <button type="button" class="btn-primary" onclick="guardarMascota()">Guardar Mascota</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de detalle de mascota -->
+  <div id="modal-ver-mascota" class="modal" style="display: none;">
+    <div class="modal-content modal-detail-content">
+      <div class="modal-header">
+        <div>
+          <h3 id="ver-mascota-nombre">Detalle de Mascota</h3>
+          <p id="ver-mascota-id" class="detail-subtitle">ID: -</p>
+        </div>
+        <button class="modal-close" onclick="cerrarModalVerMascota()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-hero">
+          <div class="detail-avatar" id="ver-mascota-avatar">🐾</div>
+          <div class="detail-summary">
+            <div class="detail-badges">
+              <span class="detail-badge" id="ver-mascota-especie">Especie: -</span>
+              <span class="detail-badge" id="ver-mascota-estado">Estado: -</span>
+            </div>
+            <p class="detail-text" id="ver-mascota-raza">Raza: -</p>
+            <p class="detail-text" id="ver-mascota-propietario">Propietario: -</p>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-card">
+            <span class="detail-label">Sexo</span>
+            <strong class="detail-value" id="ver-mascota-sexo">-</strong>
+          </div>
+          <div class="detail-card">
+            <span class="detail-label">Edad</span>
+            <strong class="detail-value" id="ver-mascota-edad">-</strong>
+          </div>
+          <div class="detail-card">
+            <span class="detail-label">Peso</span>
+            <strong class="detail-value" id="ver-mascota-peso">-</strong>
+          </div>
+          <div class="detail-card">
+            <span class="detail-label">Última visita</span>
+            <strong class="detail-value" id="ver-mascota-ultima-visita">-</strong>
+          </div>
+          <div class="detail-card">
+            <span class="detail-label">Creada</span>
+            <strong class="detail-value" id="ver-mascota-created-at">-</strong>
+          </div>
+          <div class="detail-card">
+            <span class="detail-label">Actualizada</span>
+            <strong class="detail-value" id="ver-mascota-updated-at">-</strong>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h4>Resumen clínico</h4>
+          <p id="ver-mascota-historial" class="detail-text detail-panel">Sin historial médico registrado.</p>
+        </div>
+
+        <div class="detail-section detail-stats">
+          <div>
+            <span class="detail-label">Total de citas</span>
+            <strong class="detail-value" id="ver-mascota-total-citas">0</strong>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer modal-footer-detail">
+        <button type="button" class="btn-secondary" onclick="cerrarModalVerMascota()">Cerrar</button>
+        <button type="button" class="btn-primary" onclick="editarMascotaDesdeDetalle()">Editar Mascota</button>
       </div>
     </div>
   </div>

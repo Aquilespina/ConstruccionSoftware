@@ -27,6 +27,54 @@ public function propietario(): BelongsTo
         return $this->belongsTo(Propietario::class, 'id_propietario');
     }
 
+    public function getEdadAttribute($value)
+    {
+        if ($value !== null) {
+            return $value;
+        }
+
+        return $this->attributes['años'] ?? null;
+    }
+
+    public function setEdadAttribute($value): void
+    {
+        if (array_key_exists('edad', $this->attributes)) {
+            $this->attributes['edad'] = $value;
+        }
+
+        if (array_key_exists('años', $this->attributes)) {
+            $this->attributes['años'] = $value;
+        }
+
+        if (!array_key_exists('edad', $this->attributes) && !array_key_exists('años', $this->attributes)) {
+            $this->attributes['edad'] = $value;
+        }
+    }
+
+    public function getAniosAttribute($value)
+    {
+        if ($value !== null) {
+            return $value;
+        }
+
+        return $this->attributes['edad'] ?? null;
+    }
+
+    public function setAniosAttribute($value): void
+    {
+        if (array_key_exists('años', $this->attributes)) {
+            $this->attributes['años'] = $value;
+        }
+
+        if (array_key_exists('edad', $this->attributes)) {
+            $this->attributes['edad'] = $value;
+        }
+
+        if (!array_key_exists('años', $this->attributes) && !array_key_exists('edad', $this->attributes)) {
+            $this->attributes['años'] = $value;
+        }
+    }
+
         public function recetas()
     {
         return $this->hasMany(Receta::class, 'id_mascota');
