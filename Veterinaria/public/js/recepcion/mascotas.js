@@ -85,6 +85,32 @@ function normalizarSexoMascota(sexo) {
     return '';
 }
 
+function normalizarEstadoMascota(estado) {
+    if (estado === true || estado === 1 || estado === '1') {
+        return 'activo';
+    }
+
+    if (estado === false || estado === 0 || estado === '0') {
+        return 'inactivo';
+    }
+
+    const valor = String(estado || '').trim().toLowerCase();
+
+    if (valor === 'activo' || valor === 'active') {
+        return 'activo';
+    }
+
+    if (valor === 'inactivo' || valor === 'inactive') {
+        return 'inactivo';
+    }
+
+    return 'activo';
+}
+
+function normalizarTextoFiltroMascota(valor) {
+    return String(valor || '').trim().toLowerCase();
+}
+
 function cargarDetalleMascotaEnVista(mascota) {
     const propietarioNombre = mascota?.propietario?.nombre || mascota?.propietario_nombre || 'Sin propietario';
     const especie = mascota?.especie || '-';
@@ -195,14 +221,37 @@ function initModuloMascotas() {
     // Agregar funcionalidad de búsqueda
     const searchInput = document.getElementById('search-mascotas');
     if (searchInput) {
+        let searchTimeout = null;
+
+        const buscarMascotas = () => {
+            const searchTerm = searchInput.value.trim();
+            const url = new URL(window.location.href);
+
+            if (searchTerm) {
+                url.searchParams.set('q', searchTerm);
+            } else {
+                url.searchParams.delete('q');
+            }
+
+            window.location.href = url.toString();
+        };
+
         searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const rows = document.querySelectorAll('#tabla-mascotas tr');
-            
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(searchTerm) ? '' : 'none';
-            });
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+
+            searchTimeout = setTimeout(buscarMascotas, 350);
+        });
+
+        searchInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                if (searchTimeout) {
+                    clearTimeout(searchTimeout);
+                }
+                buscarMascotas();
+            }
         });
     }
     
@@ -240,16 +289,19 @@ function initModuloMascotas() {
 }
 
 function aplicarFiltros() {
-    const especie = document.getElementById('filter-especie').value.toLowerCase();
-    const estado = document.getElementById('filter-estado-mascota').value.toLowerCase();
+    const especie = normalizarTextoFiltroMascota(document.getElementById('filter-especie')?.value);
+    const estado = normalizarTextoFiltroMascota(document.getElementById('filter-estado-mascota')?.value);
     const rows = document.querySelectorAll('#tabla-mascotas tr');
     
     rows.forEach(row => {
-        const especieCell = row.cells[1]?.textContent.toLowerCase() || '';
-        const estadoCell = row.cells[6]?.textContent.toLowerCase() || ''; // Asumiendo que el estado está en la columna 6
+        const especieCell = normalizarTextoFiltroMascota(row.dataset.especie || row.cells[1]?.textContent);
+        const estadoCell = normalizarTextoFiltroMascota(row.dataset.estado || row.cells[6]?.textContent);
+        const nombreCell = normalizarTextoFiltroMascota(row.dataset.nombre || row.cells[0]?.textContent);
         
         const especieMatch = !especie || especieCell.includes(especie);
         const estadoMatch = !estado || estadoCell.includes(estado);
+
+        row.dataset.visiblePorFiltro = (especieMatch && estadoMatch) ? '1' : '0';
         
         row.style.display = (especieMatch && estadoMatch) ? '' : 'none';
     });
@@ -336,6 +388,11 @@ async function abrirModalMascota() {
                 // Establecer estado por defecto a "activo"
                 document.getElementById('mascota-estado').value = 'activo';
             }
+        }
+
+        const btnEliminar = document.getElementById('btn-eliminar-mascota');
+        if (btnEliminar) {
+            btnEliminar.style.display = 'none';
         }
     } else {
         console.error('Modal de mascota no encontrado');
@@ -452,6 +509,11 @@ async function editarMascota(id) {
     await abrirModalMascota();
     const titulo = document.getElementById('modal-mascota-titulo');
     if (titulo) titulo.textContent = 'Editar Mascota';
+
+    const btnEliminar = document.getElementById('btn-eliminar-mascota');
+    if (btnEliminar) {
+        btnEliminar.style.display = 'inline-flex';
+    }
     
     // Aquí iría la lógica para cargar los datos de la mascota desde la API
     try {
@@ -470,7 +532,7 @@ async function editarMascota(id) {
         document.getElementById('mascota-edad').value = mascota.edad || '';
         document.getElementById('mascota-peso').value = mascota.peso || '';
         document.getElementById('mascota-sexo').value = normalizarSexoMascota(mascota.sexo);
-        document.getElementById('mascota-estado').value = mascota.estado || 'activo';
+        document.getElementById('mascota-estado').value = normalizarEstadoMascota(mascota.estado);
         
         // Llenar historial médico si existe el campo
         const historialInput = document.getElementById('mascota-historial');
@@ -498,5 +560,52 @@ async function editarMascota(id) {
         }
         
         alert('Error al cargar los datos de la mascota. Se han cargado datos de ejemplo.');
+    }
+}
+
+async function eliminarMascota(id) {
+    if (!id) {
+        alert('No se pudo identificar la mascota a eliminar');
+        return;
+    }
+
+    const confirmado = confirm('¿Está seguro de eliminar esta mascota? Esta acción no se puede deshacer.');
+    if (!confirmado) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/mascotas/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            }
+        });
+
+        const contentType = response.headers.get('content-type') || '';
+        const data = contentType.includes('application/json') ? await response.json() : null;
+
+        if (!response.ok) {
+            throw new Error(data?.message || 'No se pudo eliminar la mascota');
+        }
+
+        cerrarModalMascota();
+        alert(data?.message || 'Mascota eliminada correctamente');
+
+        if (typeof cargarDashboard === 'function') {
+            try {
+                cargarDashboard();
+            } catch (error) {
+                console.warn('cargarDashboard falló:', error);
+                location.reload();
+            }
+        } else {
+            location.reload();
+        }
+    } catch (error) {
+        console.error('Error eliminando mascota:', error);
+        alert('Error al eliminar la mascota: ' + error.message);
     }
 }

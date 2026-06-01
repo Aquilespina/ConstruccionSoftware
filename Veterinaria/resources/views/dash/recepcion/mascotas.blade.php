@@ -29,7 +29,7 @@
   
   <div class="filters-bar">
     <div class="search-filter">
-      <input type="text" placeholder="Buscar mascota..." class="search-input" id="search-mascotas">
+      <input type="text" placeholder="Buscar mascota..." class="search-input" id="search-mascotas" value="{{ $search ?? '' }}">
     </div>
     <div class="filter-actions">
       <select class="filter-select" id="filter-especie">
@@ -68,7 +68,10 @@
           $especie = strtolower($mascota->especie ?? '');
           $avatar = str_contains($especie, 'gat') ? '🐈' : (str_contains($especie, 'ave') ? '🐦' : '🐕');
         @endphp
-        <tr>
+        <tr
+          data-especie="{{ strtolower($mascota->especie ?? '') }}"
+          data-estado="{{ strtolower((string) ($mascota->estado ?? ($mascota->color ?? ''))) }}"
+          data-nombre="{{ strtolower($mascota->nombre ?? '') }}">
           <td>
             <div style="display: flex; align-items: center; gap: 0.75rem;">
               <div class="pet-avatar">{{ $avatar }}</div>
@@ -190,6 +193,7 @@
         </form>
       </div>
       <div class="modal-footer">
+        <button type="button" class="btn-danger" id="btn-eliminar-mascota" style="display: none;" onclick="eliminarMascota(document.getElementById('form-mascota').dataset.mascotaId)">Eliminar</button>
         <button type="button" class="btn-secondary" onclick="cerrarModalMascota()">Cancelar</button>
         <button type="button" class="btn-primary" onclick="guardarMascota()">Guardar Mascota</button>
       </div>

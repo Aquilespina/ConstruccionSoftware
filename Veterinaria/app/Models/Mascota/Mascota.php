@@ -22,6 +22,42 @@ class Mascota extends Model
     public $timestamps = false;
     protected $guarded = [];
 
+    public function getEstadoAttribute($value)
+    {
+        if (is_bool($value)) {
+            return $value ? 'activo' : 'inactivo';
+        }
+
+        $valor = strtolower(trim((string) $value));
+
+        if (in_array($valor, ['1', 'true', 'activo', 'active'], true)) {
+            return 'activo';
+        }
+
+        if (in_array($valor, ['0', 'false', 'inactivo', 'inactive'], true)) {
+            return 'inactivo';
+        }
+
+        return $valor;
+    }
+
+    public function setEstadoAttribute($value): void
+    {
+        $valor = strtolower(trim((string) $value));
+
+        if (in_array($valor, ['1', 'true', 'activo', 'active'], true)) {
+            $this->attributes['estado'] = 'activo';
+            return;
+        }
+
+        if (in_array($valor, ['0', 'false', 'inactivo', 'inactive'], true)) {
+            $this->attributes['estado'] = 'inactivo';
+            return;
+        }
+
+        $this->attributes['estado'] = $value;
+    }
+
 public function propietario(): BelongsTo
     {
         return $this->belongsTo(Propietario::class, 'id_propietario');
