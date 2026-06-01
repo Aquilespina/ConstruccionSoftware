@@ -16,7 +16,7 @@
         </svg>
         Nueva Mascota
       </button>
-      <button class="btn-secondary">
+      <button class="btn-secondary" id="btn-exportar-mascotas">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
@@ -271,5 +271,27 @@
 </section>
 
 <script src="{{ asset('js/recepcion/mascotas.js') }}"></script>
+
+<script>
+  // Exportar mascotas a Excel
+  document.getElementById('btn-exportar-mascotas').addEventListener('click', function() {
+    const searchInput = document.getElementById('search-mascotas').value;
+    const especieFilter = document.getElementById('filter-especie').value;
+    const estadoFilter = document.getElementById('filter-estado-mascota').value;
+
+    let url = '{{ route('mascotas.export') }}';
+    const params = new URLSearchParams();
+    
+    if (searchInput) params.append('q', searchInput);
+    if (especieFilter) params.append('especie', especieFilter);
+    if (estadoFilter) params.append('estado', estadoFilter);
+
+    if (params.toString()) {
+      url += '?' + params.toString();
+    }
+
+    window.location.href = url;
+  });
+</script>
 
 @endsection

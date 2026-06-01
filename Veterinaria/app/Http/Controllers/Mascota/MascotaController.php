@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Mascota;
 
 use App\Http\Controllers\Controller;
 use App\Models\Mascota\Mascota;
+use App\Support\SimpleXlsxExporter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -372,6 +373,102 @@ class MascotaController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al eliminar la mascota',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Export mascotas with related information to Excel
+     */
+    public function export(Request $request)
+    {
+        try {
+            $query = Mascota::with(['propietario', 'citas']);
+
+            $texto = trim((string) $request->query('q', ''));
+            $especie = trim((string) $request->query('especie', ''));
+            $estado = trim((string) $request->query('estado', ''));
+
+            if ($texto !== '') {
+                $query->where('nombre', 'like', '%' . $texto . '%');
+            }
+
+            if ($especie !== '') {
+                $query->where('especie', 'like', '%' . $especie . '%');
+            }
+
+            if ($estado !== '') {
+                $columns = DB::select('SHOW COLUMNS FROM mascota');
+                $columnNames = array_column($columns, 'Field');
+                $statusColumn = in_array('estado', $columnNames)
+                    ? 'estado'
+                    : (in_array('color', $columnNames) ? 'color' : null);
+
+                if ($statusColumn === 'estado') {
+                    $query->where(function ($subQuery) use ($estado) {
+                        if ($estado === 'activo') {
+                            $subQuery->where('estado', 1)->orWhere('estado', 'activo')->orWhere('estado', 'true');
+                        } elseif ($estado === 'inactivo') {
+                            $subQuery->where('estado', 0)->orWhere('estado', 'inactivo')->orWhere('estado', 'false');
+                        }
+                    });
+                } elseif ($statusColumn === 'color') {
+                    $query->where($statusColumn, $estado);
+                }
+            }
+
+            $mascotas = $query->orderBy('id_mascota', 'asc')->get();
+
+            $headers = [
+                'ID Mascota',
+                'Nombre',
+                'Especie',
+                'Raza',
+                'Sexo',
+                'Edad',
+                'Peso (kg)',
+                'Estado',
+                'Propietario',
+                'Teléfono Propietario',
+                'Correo Propietario',
+                'Última Visita',
+                'Total Citas',
+                'Historial Médico',
+                'Fecha Creación',
+                'Fecha Actualización',
+            ];
+
+            $rows = [];
+
+            foreach ($mascotas as $mascota) {
+                $rows[] = [
+                    $mascota->id_mascota,
+                    $mascota->nombre,
+                    $mascota->especie,
+                    $mascota->raza,
+                    $mascota->sexo ?? '-',
+                    $mascota->edad ?? ($mascota->años ?? '-'),
+                    $mascota->peso ?? '-',
+                    $this->normalizarEstadoMascotaParaVista($mascota->estado ?? ($mascota->color ?? null)),
+                    optional($mascota->propietario)->nombre ?? '-',
+                    optional($mascota->propietario)->telefono ?? '-',
+                    optional($mascota->propietario)->correo ?? '-',
+                    $mascota->ultima_visita ?? '-',
+                    $mascota->citas->count(),
+                    $mascota->historial_medico ?? '-',
+                    $mascota->created_at,
+                    $mascota->updated_at,
+                ];
+            }
+
+            $filename = 'mascotas_' . date('Y-m-d_H-i-s') . '.xlsx';
+
+            return SimpleXlsxExporter::download($filename, $headers, $rows, 'Mascotas');
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al exportar mascotas: ' . $e->getMessage(),
                 'error' => $e->getMessage(),
             ], 500);
         }
