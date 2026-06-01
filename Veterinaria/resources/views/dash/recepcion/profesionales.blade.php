@@ -484,7 +484,7 @@
         </svg>
         Nuevo Profesional
       </button>
-      <button class="btn-secondary">
+      <button class="btn-secondary" id="btn-exportar-profesionales" type="button">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
@@ -825,6 +825,11 @@ document.addEventListener('DOMContentLoaded', function() {
         btnNuevoProfesional.addEventListener('click', abrirModalProfesional);
     }
 
+    const btnExportarProfesionales = document.getElementById('btn-exportar-profesionales');
+    if (btnExportarProfesionales) {
+        btnExportarProfesionales.addEventListener('click', exportarProfesionales);
+    }
+
     const searchInput = document.getElementById('search-profesionales');
     if (searchInput) {
         searchInput.addEventListener('input', filtrarProfesionales);
@@ -1060,6 +1065,30 @@ function validarFormularioProfesional() {
     }
 
     return rfcOk && nombreOk && correoOk && especialidadesOk && (form ? form.checkValidity() : false);
+}
+
+function exportarProfesionales() {
+    const params = new URLSearchParams();
+    const searchInput = document.getElementById('search-profesionales');
+    const filterEspecialidad = document.getElementById('filter-especialidad');
+    const filterEstado = document.getElementById('filter-estado-profesional');
+
+    if (searchInput?.value.trim()) {
+        params.append('q', searchInput.value.trim());
+    }
+    if (filterEspecialidad?.value) {
+        params.append('especialidad', filterEspecialidad.value);
+    }
+    if (filterEstado?.value !== '') {
+        params.append('activo', filterEstado.value);
+    }
+
+    let url = '{{ route('profesionales.export') }}';
+    if (params.toString()) {
+        url += '?' + params.toString();
+    }
+
+    window.location.href = url;
 }
 
 function aplicarFiltrosProfesionales() {

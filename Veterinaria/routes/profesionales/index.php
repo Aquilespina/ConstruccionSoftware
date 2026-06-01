@@ -8,6 +8,7 @@ Route::post('/', [ProfesionalController::class, 'store'])->name('store');
 Route::get('/activos', [ProfesionalController::class, 'activos'])->name('activos');
 Route::get('/especialidades', [ProfesionalController::class, 'especialidades'])->name('especialidades');
 Route::get('/especialidad/{especialidad}', [ProfesionalController::class, 'porEspecialidad'])->name('porEspecialidad');
+Route::get('/exportar/excel', [ProfesionalController::class, 'export'])->name('export');
 Route::get('/{id}', [ProfesionalController::class, 'show'])->name('show');
 Route::put('/{id}', [ProfesionalController::class, 'update'])->name('update');
 Route::patch('/{id}/estado', [ProfesionalController::class, 'cambiarEstado'])->name('cambiarEstado');

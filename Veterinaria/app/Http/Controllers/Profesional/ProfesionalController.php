@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Profesional;
 
 use App\Http\Controllers\Controller;
 use App\Models\Profesional;
+use App\Support\SimpleXlsxExporter;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -460,5 +462,124 @@ class ProfesionalController extends Controller
         $data['activo'] = (bool) ($data['activo'] ?? true);
 
         return $data;
+    }
+
+    /**
+     * Exportar profesionales con resumen y citas atendidas a Excel.
+     */
+    public function export(Request $request)
+    {
+        try {
+            $query = Profesional::with(['citas.mascota']);
+
+            $texto = trim((string) $request->query('q', ''));
+            $especialidad = trim((string) $request->query('especialidad', ''));
+            $activo = $request->query('activo');
+
+            if ($texto !== '') {
+                $query->where(function ($subQuery) use ($texto) {
+                    $subQuery->where('nombre', 'like', '%' . $texto . '%')
+                        ->orWhere('rfc', 'like', '%' . $texto . '%')
+                        ->orWhere('correo', 'like', '%' . $texto . '%');
+                });
+            }
+
+            if ($especialidad !== '') {
+                $query->where('especialidad', 'like', '%' . $especialidad . '%');
+            }
+
+            if ($activo !== null && $activo !== '') {
+                $query->where('activo', filter_var($activo, FILTER_VALIDATE_BOOLEAN));
+            }
+
+            $profesionales = $query->orderBy('nombre')->get();
+
+            $headers = [
+                'RFC',
+                'Nombre',
+                'Correo',
+                'Especialidad',
+                'Turno',
+                'Activo',
+                'Total Citas',
+                'Total Mascotas',
+                'ID Cita',
+                'Fecha Cita',
+                'Hora',
+                'Mascota',
+                'Especie',
+                'Tipo Servicio',
+                'Estado Cita',
+            ];
+
+            $rows = [];
+
+            foreach ($profesionales as $profesional) {
+                $citas = $profesional->citas;
+                $totalCitas = $citas->count();
+                $totalMascotas = $citas->pluck('mascota')
+                    ->filter()
+                    ->unique('id_mascota')
+                    ->count();
+
+                $filaBase = [
+                    $profesional->rfc,
+                    $profesional->nombre,
+                    $profesional->correo ?? 'N/A',
+                    $profesional->especialidad ?? 'N/A',
+                    $profesional->turno ?? 'Sin asignar',
+                    $profesional->activo ? 'Sí' : 'No',
+                    $totalCitas,
+                    $totalMascotas,
+                ];
+
+                if ($citas->isEmpty()) {
+                    $rows[] = array_merge($filaBase, [
+                        'Sin citas registradas',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                    ]);
+                    continue;
+                }
+
+                foreach ($citas as $cita) {
+                    $rows[] = array_merge($filaBase, [
+                        $cita->id_cita ?? 'N/A',
+                        $this->formatearFechaCitaExport($cita->fecha),
+                        $cita->horario ?? 'N/A',
+                        optional($cita->mascota)->nombre ?? 'N/A',
+                        optional($cita->mascota)->especie ?? 'N/A',
+                        $cita->tipo_servicio ?? $cita->tipo_cita ?? 'N/A',
+                        $cita->estado ?? 'N/A',
+                    ]);
+                }
+            }
+
+            $filename = 'profesionales_' . date('Y-m-d_H-i-s') . '.xlsx';
+
+            return SimpleXlsxExporter::download($filename, $headers, $rows, 'Profesionales');
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al exportar profesionales: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    private function formatearFechaCitaExport($fecha): string
+    {
+        if ($fecha === null || $fecha === '') {
+            return 'N/A';
+        }
+
+        try {
+            return Carbon::parse($fecha)->format('d/m/Y');
+        } catch (\Exception $e) {
+            return (string) $fecha;
+        }
     }
 }
