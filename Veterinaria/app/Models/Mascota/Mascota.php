@@ -43,19 +43,19 @@ class Mascota extends Model
 
     public function setEstadoAttribute($value): void
     {
-        $valor = strtolower(trim((string) $value));
+  $valor = strtolower(trim((string) $value));
 
-        if (in_array($valor, ['1', 'true', 'activo', 'active'], true)) {
-            $this->attributes['estado'] = 'activo';
-            return;
-        }
+    if (in_array($valor, ['1', 'true', 'activo', 'active'], true)) {
+        $this->attributes['estado'] = 1;
+        return;
+    }
 
-        if (in_array($valor, ['0', 'false', 'inactivo', 'inactive'], true)) {
-            $this->attributes['estado'] = 'inactivo';
-            return;
-        }
+    if (in_array($valor, ['0', 'false', 'inactivo', 'inactive'], true)) {
+        $this->attributes['estado'] = 0;
+        return;
+    }
 
-        $this->attributes['estado'] = $value;
+    $this->attributes['estado'] = (int) $value;
     }
 
 public function propietario(): BelongsTo

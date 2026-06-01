@@ -65,6 +65,66 @@ class MascotaController extends Controller
         return view('dash.recepcion.mascotas', compact('mascotas', 'search'));
     }
 
+    public function buscar(Request $request)
+    {
+        $columns = DB::select('SHOW COLUMNS FROM mascota');
+        $columnNames = array_column($columns, 'Field');
+
+        $query = Mascota::with('propietario');
+
+        $texto = trim((string) $request->query('q', ''));
+        $especie = trim((string) $request->query('especie', ''));
+        $estado = trim((string) $request->query('estado', ''));
+
+        if ($texto !== '') {
+            $query->where('nombre', 'like', '%' . $texto . '%');
+        }
+
+        if ($especie !== '') {
+            $query->where('especie', 'like', '%' . $especie . '%');
+        }
+
+        if ($estado !== '') {
+            $statusColumn = in_array('estado', $columnNames)
+                ? 'estado'
+                : (in_array('color', $columnNames) ? 'color' : null);
+
+            if ($statusColumn === 'estado') {
+                $query->where(function ($subQuery) use ($estado) {
+                    if ($estado === 'activo') {
+                        $subQuery->where('estado', 1)->orWhere('estado', 'activo')->orWhere('estado', 'true');
+                    } elseif ($estado === 'inactivo') {
+                        $subQuery->where('estado', 0)->orWhere('estado', 'inactivo')->orWhere('estado', 'false');
+                    }
+                });
+            } elseif ($statusColumn === 'color') {
+                $query->where($statusColumn, $estado);
+            }
+        }
+
+        $mascotas = $query->orderBy('id_mascota', 'asc')->get();
+
+        $rows = $mascotas->map(function ($mascota) {
+            $especieNormalizada = strtolower((string) ($mascota->especie ?? ''));
+            $avatar = str_contains($especieNormalizada, 'gat') ? '🐈' : (str_contains($especieNormalizada, 'ave') ? '🐦' : '🐕');
+            $estado = $this->normalizarEstadoMascotaParaVista($mascota->estado ?? ($mascota->color ?? null));
+
+            return [
+                'id_mascota' => $mascota->id_mascota,
+                'nombre' => $mascota->nombre ?? '-',
+                'especie' => $mascota->especie ?? '-',
+                'raza' => $mascota->raza ?? '-',
+                'propietario' => optional($mascota->propietario)->nombre ?? '-',
+                'edad' => $mascota->edad ?? '-',
+                'ultima_visita' => $mascota->ultima_visita ?? '-',
+                'avatar' => $avatar,
+                'estado' => $estado,
+            ];
+        });
+
+        return response()->json($rows);
+    }
+
     /**
      * Show the form for creating a new resource.
      */
@@ -88,7 +148,6 @@ class MascotaController extends Controller
                 'sexo' => 'nullable|string|max:10',
                 'historial_medico' => 'nullable|string',
                 'id_propietario' => 'required|integer|min:1',
-                'estado' => 'required|string|max:20',
             ]);
 
             $columns = DB::select('SHOW COLUMNS FROM mascota');
@@ -210,6 +269,7 @@ class MascotaController extends Controller
     {
         try {
             $mascota = Mascota::findOrFail($id);
+           
 
             $validated = $request->validate([
                 'nombre' => 'required|string|max:255',
@@ -218,7 +278,7 @@ class MascotaController extends Controller
                 'edad' => 'nullable|integer|min:0',
                 'peso' => 'nullable|numeric|min:0',
                 'sexo' => 'nullable|string|max:10',
-                'estado' => 'required|string|max:20',
+                'estado' => 'boolean',
                 'historial_medico' => 'nullable|string',
                 'id_propietario' => 'required|integer|min:1|exists:propietario,id_propietario',
             ]);

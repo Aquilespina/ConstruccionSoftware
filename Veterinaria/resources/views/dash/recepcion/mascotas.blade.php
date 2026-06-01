@@ -185,8 +185,8 @@
             <div class="form-group">
               <label for="mascota-estado">Estado *</label>
               <select id="mascota-estado" name="estado" class="form-control" required>
-                <option value="activo">Activo</option>
-                <option value="inactivo">Inactivo</option>
+                <option value="1">Activo</option>
+                <option value="0">Inactivo</option>
               </select>
             </div>
           </div>

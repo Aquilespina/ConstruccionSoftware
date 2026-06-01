@@ -5,6 +5,7 @@ use App\Http\Controllers\Mascota\MascotaController;
 Route::get('/', [MascotaController::class, 'index'])->name('index');
 Route::get('/crear', [MascotaController::class, 'create'])->name('create');
 Route::post('/', [MascotaController::class, 'store'])->name('store');
+Route::get('/buscar', [MascotaController::class, 'buscar'])->name('buscar');
 
 Route::prefix('{id_mascota}')->group(function() {
     Route::get('', [MascotaController::class, 'show'])->name('show');

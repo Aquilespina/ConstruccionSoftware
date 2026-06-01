@@ -111,6 +111,53 @@ function normalizarTextoFiltroMascota(valor) {
     return String(valor || '').trim().toLowerCase();
 }
 
+function obtenerFilaMascotaHtml(mascota) {
+        return `
+                <tr data-especie="${normalizarTextoFiltroMascota(mascota.especie)}" data-estado="${normalizarTextoFiltroMascota(mascota.estado)}" data-nombre="${normalizarTextoFiltroMascota(mascota.nombre)}">
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <div class="pet-avatar">${mascota.avatar || '🐕'}</div>
+                            <div>
+                                <div style="font-weight: 600;">${mascota.nombre ?? '-'}</div>
+                                <div style="font-size: 0.75rem; color: var(--gray-500);">ID: ${mascota.id_mascota ?? ''}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${mascota.especie ?? '-'}</td>
+                    <td>${mascota.raza ?? '-'}</td>
+                    <td>${mascota.propietario ?? '-'}</td>
+                    <td>${mascota.edad ?? '-'}</td>
+                    <td>${mascota.ultima_visita ?? '-'}</td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn-outline" onclick="verMascota('${mascota.id_mascota}')">Ver</button>
+                            <button class="btn-secondary" onclick="editarMascota('${mascota.id_mascota}')">Editar</button>
+                        </div>
+                    </td>
+                </tr>
+        `;
+}
+
+function actualizarTablaMascotas(mascotas) {
+        const tbody = document.getElementById('tabla-mascotas');
+        if (!tbody) {
+                return;
+        }
+
+        tbody.innerHTML = '';
+
+        if (!Array.isArray(mascotas) || mascotas.length === 0) {
+                tbody.innerHTML = `
+                        <tr>
+                                <td colspan="7" style="text-align:center; padding:1.5rem; color:var(--gray-600);">No se encontraron resultados</td>
+                        </tr>
+                `;
+                return;
+        }
+
+        tbody.innerHTML = mascotas.map(obtenerFilaMascotaHtml).join('');
+}
+
 function cargarDetalleMascotaEnVista(mascota) {
     const propietarioNombre = mascota?.propietario?.nombre || mascota?.propietario_nombre || 'Sin propietario';
     const especie = mascota?.especie || '-';
@@ -223,17 +270,35 @@ function initModuloMascotas() {
     if (searchInput) {
         let searchTimeout = null;
 
-        const buscarMascotas = () => {
+        const buscarMascotas = async () => {
             const searchTerm = searchInput.value.trim();
-            const url = new URL(window.location.href);
+            const especie = document.getElementById('filter-especie')?.value || '';
+            const estado = document.getElementById('filter-estado-mascota')?.value || '';
 
-            if (searchTerm) {
-                url.searchParams.set('q', searchTerm);
-            } else {
-                url.searchParams.delete('q');
+            const params = new URLSearchParams();
+            if (searchTerm) params.set('q', searchTerm);
+            if (especie) params.set('especie', especie);
+            if (estado) params.set('estado', estado);
+
+            try {
+                const response = await fetch(`/recepcion/mascotas/buscar?${params.toString()}`, {
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('No se pudieron cargar las mascotas filtradas');
+                }
+
+                const mascotas = await response.json();
+                actualizarTablaMascotas(mascotas);
+            } catch (error) {
+                console.error('Error filtrando mascotas:', error);
+                alert('No se pudieron filtrar las mascotas: ' + error.message);
             }
-
-            window.location.href = url.toString();
         };
 
         searchInput.addEventListener('input', function() {
@@ -261,7 +326,9 @@ function initModuloMascotas() {
     
     if (filterEspecie && filterEstado) {
         [filterEspecie, filterEstado].forEach(select => {
-            select.addEventListener('change', aplicarFiltros);
+            select.addEventListener('change', function() {
+                aplicarFiltros();
+            });
         });
     }
     
@@ -289,21 +356,34 @@ function initModuloMascotas() {
 }
 
 function aplicarFiltros() {
-    const especie = normalizarTextoFiltroMascota(document.getElementById('filter-especie')?.value);
-    const estado = normalizarTextoFiltroMascota(document.getElementById('filter-estado-mascota')?.value);
-    const rows = document.querySelectorAll('#tabla-mascotas tr');
-    
-    rows.forEach(row => {
-        const especieCell = normalizarTextoFiltroMascota(row.dataset.especie || row.cells[1]?.textContent);
-        const estadoCell = normalizarTextoFiltroMascota(row.dataset.estado || row.cells[6]?.textContent);
-        const nombreCell = normalizarTextoFiltroMascota(row.dataset.nombre || row.cells[0]?.textContent);
-        
-        const especieMatch = !especie || especieCell.includes(especie);
-        const estadoMatch = !estado || estadoCell.includes(estado);
+    const searchInput = document.getElementById('search-mascotas');
+    const searchTerm = searchInput ? searchInput.value.trim() : '';
+    const especie = document.getElementById('filter-especie')?.value || '';
+    const estado = document.getElementById('filter-estado-mascota')?.value || '';
 
-        row.dataset.visiblePorFiltro = (especieMatch && estadoMatch) ? '1' : '0';
-        
-        row.style.display = (especieMatch && estadoMatch) ? '' : 'none';
+    const params = new URLSearchParams();
+    if (searchTerm) params.set('q', searchTerm);
+    if (especie) params.set('especie', especie);
+    if (estado) params.set('estado', estado);
+
+    fetch(`/recepcion/mascotas/buscar?${params.toString()}`, {
+        credentials: 'include',
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('No se pudieron cargar las mascotas filtradas');
+        }
+
+        return response.json();
+    })
+    .then(actualizarTablaMascotas)
+    .catch(error => {
+        console.error('Error filtrando mascotas:', error);
+        alert('No se pudieron filtrar las mascotas: ' + error.message);
     });
 }
 
