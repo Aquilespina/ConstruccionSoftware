@@ -94,8 +94,14 @@ class ProfesionalController extends Controller
     public function show(string $id)
     {
         try {
-            $profesional = Profesional::find($id);
-            
+            $profesional = Profesional::with([
+                'citas' => function ($query) {
+                    $query->with('mascota')
+                        ->orderByDesc('fecha')
+                        ->orderByDesc('horario');
+                },
+            ])->find($id);
+
             if (!$profesional) {
                 return response()->json([
                     'success' => false,
@@ -103,9 +109,19 @@ class ProfesionalController extends Controller
                 ], 404);
             }
 
+            $mascotasAtendidas = $profesional->citas
+                ->pluck('mascota')
+                ->filter()
+                ->unique('id_mascota')
+                ->values();
+
             return response()->json([
                 'success' => true,
                 'data' => $profesional,
+                'citas' => $profesional->citas,
+                'total_citas' => $profesional->citas->count(),
+                'total_mascotas' => $mascotasAtendidas->count(),
+                'mascotas_atendidas' => $mascotasAtendidas,
                 'message' => 'Profesional obtenido correctamente'
             ]);
 
@@ -199,8 +215,7 @@ class ProfesionalController extends Controller
                 ], 404);
             }
 
-            // Verificar si el profesional tiene citas asociadas
-            $tieneCitas = DB::table('citas')->where('id_profesional', $id)->exists();
+            $tieneCitas = DB::table('cita')->where('rfc_profesional', $id)->exists();
             
             if ($tieneCitas) {
                 return response()->json([

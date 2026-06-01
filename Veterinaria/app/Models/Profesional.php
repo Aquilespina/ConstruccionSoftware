@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Models\Cita\Cita;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Profesional extends Model
 {
@@ -42,6 +44,11 @@ class Profesional extends Model
     public function scopeEspecialidad($query, string $especialidad)
     {
         return $query->where('especialidad', $especialidad);
+    }
+
+    public function citas(): HasMany
+    {
+        return $this->hasMany(Cita::class, 'rfc_profesional', 'rfc');
     }
 
     /**

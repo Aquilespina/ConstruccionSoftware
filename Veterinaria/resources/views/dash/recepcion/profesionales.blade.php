@@ -5,6 +5,7 @@
 @push('styles')
   <link rel="stylesheet" href="{{ asset('css/recepcion/medicos.css') }}">
   <link rel="stylesheet" href="{{ asset('css/recepcion/form-validation.css') }}">
+  <link rel="stylesheet" href="{{ asset('css/recepcion/entity-detail.css') }}">
   <style>
     /* Estilos generales */
     :root {
@@ -543,7 +544,8 @@
             </td>
             <td>
               <div style="display: flex; gap: 0.5rem;">
-                <button class="btn-outline" onclick="editarProfesional('{{ $profesional->rfc }}')">Editar</button>
+                <button class="btn-outline" onclick="verProfesional('{{ $profesional->rfc }}')">Ver</button>
+                <button class="btn-secondary" onclick="editarProfesional('{{ $profesional->rfc }}')">Editar</button>
               </div>
             </td>
           </tr>
@@ -672,9 +674,96 @@
           </div>
         </form>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn-secondary" onclick="cerrarModalProfesional()">Cancelar</button>
-        <button type="button" class="btn-primary" onclick="guardarProfesional()">Guardar Profesional</button>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button
+          type="button"
+          class="btn-danger"
+          id="btn-eliminar-profesional"
+          style="display: none;"
+          onclick="eliminarProfesional(document.getElementById('profesional-id').value)">
+          Eliminar
+        </button>
+        <div style="display: flex; gap: 0.75rem; margin-left: auto;">
+          <button type="button" class="btn-secondary" onclick="cerrarModalProfesional()">Cancelar</button>
+          <button type="button" class="btn-primary" onclick="guardarProfesional()">Guardar Profesional</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de detalle del profesional -->
+  <div id="modal-ver-profesional" class="modal" style="display: none;">
+    <div class="modal-content modal-detail-content">
+      <div class="modal-header">
+        <div>
+          <h3 id="ver-profesional-nombre">Detalle del Profesional</h3>
+          <p id="ver-profesional-rfc" class="detail-subtitle">RFC: -</p>
+        </div>
+        <button class="modal-close" onclick="cerrarModalVerProfesional()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-hero">
+          <div class="detail-avatar" id="ver-profesional-avatar">DR</div>
+          <div class="detail-summary">
+            <div class="detail-badges">
+              <span class="detail-badge" id="ver-profesional-especialidad">Especialidad: -</span>
+              <span class="detail-badge" id="ver-profesional-estado">Estado: -</span>
+              <span class="detail-badge" id="ver-profesional-turno">Turno: -</span>
+            </div>
+            <p class="detail-text" id="ver-profesional-correo">Correo: -</p>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-card">
+            <span class="detail-label">RFC</span>
+            <strong class="detail-value" id="ver-profesional-rfc-valor">-</strong>
+          </div>
+          <div class="detail-card">
+            <span class="detail-label">Turno</span>
+            <strong class="detail-value" id="ver-profesional-turno-valor">-</strong>
+          </div>
+        </div>
+
+        <div class="detail-section detail-stats">
+          <div>
+            <span class="detail-label">Total de citas</span>
+            <strong class="detail-value" id="ver-profesional-total-citas">0</strong>
+          </div>
+          <div>
+            <span class="detail-label">Mascotas atendidas</span>
+            <strong class="detail-value" id="ver-profesional-total-mascotas">0</strong>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h4>Citas registradas</h4>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Hora</th>
+                  <th>Mascota</th>
+                  <th>Especie</th>
+                  <th>Servicio</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-citas-profesional">
+                <tr>
+                  <td colspan="6" style="text-align: center; padding: 1rem; color: var(--gray-500);">
+                    Sin citas registradas
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer modal-footer-detail">
+        <button type="button" class="btn-secondary" onclick="cerrarModalVerProfesional()">Cerrar</button>
+        <button type="button" class="btn-primary" onclick="editarProfesionalDesdeDetalle()">Editar Profesional</button>
       </div>
     </div>
   </div>
@@ -682,6 +771,53 @@
 
 <script>
 const RFC_PATTERN = /^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$/;
+let profesionalDetalleActualRfc = null;
+
+function urlProfesional(rfc) {
+    return `/recepcion/profesionales/${encodeURIComponent(rfc)}`;
+}
+
+function opcionesFetchProfesional(opciones = {}) {
+    const { headers: extraHeaders, ...rest } = opciones;
+
+    return {
+        credentials: 'include',
+        ...rest,
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            ...(extraHeaders || {}),
+        },
+    };
+}
+
+async function respuestaJsonProfesional(response) {
+    const contentType = response.headers.get('content-type') || '';
+
+    if (!response.ok) {
+        if (contentType.includes('application/json')) {
+            const errorData = await response.json();
+            if (errorData.errors) {
+                const mensajes = Object.values(errorData.errors).flat();
+                throw new Error(mensajes.join('\n') || errorData.message || 'Error en la solicitud');
+            }
+            throw new Error(errorData.message || `Error ${response.status}`);
+        }
+
+        if (response.redirected || response.status === 401 || response.status === 403) {
+            throw new Error('Sesión expirada o sin permisos. Recargue la página e inicie sesión nuevamente.');
+        }
+
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+
+    if (!contentType.includes('application/json')) {
+        throw new Error('El servidor no devolvió JSON. Verifique su sesión o recargue la página.');
+    }
+
+    return response.json();
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     const btnNuevoProfesional = document.getElementById('btn-nuevo-profesional');
@@ -721,6 +857,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.querySelectorAll('.profesional-especialidad-check').forEach(checkbox => {
         checkbox.addEventListener('change', validarEspecialidades);
+    });
+
+    const modalProfesional = document.getElementById('modal-profesional');
+    const modalVerProfesional = document.getElementById('modal-ver-profesional');
+
+    document.addEventListener('click', function(event) {
+        if (modalProfesional && event.target === modalProfesional) {
+            cerrarModalProfesional();
+        }
+        if (modalVerProfesional && event.target === modalVerProfesional) {
+            cerrarModalVerProfesional();
+        }
+    });
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            cerrarModalProfesional();
+            cerrarModalVerProfesional();
+        }
     });
 });
 
@@ -950,6 +1105,10 @@ function abrirModalProfesional() {
         const chk = document.getElementById('profesional-activo');
         if (chk) chk.checked = true;
         configurarCampoRfcModo(false);
+        const btnEliminar = document.getElementById('btn-eliminar-profesional');
+        if (btnEliminar) {
+            btnEliminar.style.display = 'none';
+        }
     }
 }
 
@@ -974,26 +1133,15 @@ async function guardarProfesional() {
   const baseUrl = '{{ url("recepcion/profesionales") }}';
   let url = form.action;
   if (profesionalRfc) {
-    url = `${baseUrl}/${profesionalRfc}`;
+    url = `${baseUrl}/${encodeURIComponent(profesionalRfc)}`;
     formData.append('_method', 'PUT');
   }
 
     try {
-        console.log('Enviando profesional a:', url);
-        console.log('FormData enviado:');
-        for (let [key, value] of formData.entries()) {
-            console.log(`  ${key}: ${value}`);
-        }
-        
-    const response = await fetch(url, {
+    const response = await fetch(url, opcionesFetchProfesional({
       method: method,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                'Accept': 'application/json'
-            },
             body: formData
-        });
+        }));
 
         // Verificar si la respuesta es JSON
         const contentType = response.headers.get('content-type');
@@ -1065,33 +1213,186 @@ async function guardarProfesional() {
     }
 }
 
-async function editarProfesional(rfc) {
-  console.log('Editando profesional RFC:', rfc);
-    
+function obtenerDatosProfesionalRespuesta(payload) {
+    return payload?.data ?? payload;
+}
+
+function formatearFechaCita(fecha) {
+    if (!fecha) {
+        return 'N/A';
+    }
+    const date = new Date(fecha);
+    if (Number.isNaN(date.getTime())) {
+        return fecha;
+    }
+    return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function obtenerInicialesProfesional(nombre) {
+    const partes = String(nombre || 'DR').trim().split(/\s+/).filter(Boolean);
+    if (partes.length === 0) {
+        return 'DR';
+    }
+    if (partes.length === 1) {
+        return partes[0].substring(0, 2).toUpperCase();
+    }
+    return (partes[0][0] + partes[1][0]).toUpperCase();
+}
+
+function renderizarCitasProfesional(citas) {
+    const tbody = document.getElementById('tabla-citas-profesional');
+    if (!tbody) {
+        return;
+    }
+
+    if (!Array.isArray(citas) || citas.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 1rem; color: var(--gray-500);">
+                    Sin citas registradas
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = citas.map((cita) => `
+        <tr>
+            <td>${formatearFechaCita(cita.fecha)}</td>
+            <td>${cita.horario ?? 'N/A'}</td>
+            <td>${cita.mascota?.nombre ?? 'N/A'}</td>
+            <td>${cita.mascota?.especie ?? 'N/A'}</td>
+            <td>${cita.tipo_servicio ?? cita.tipo_cita ?? 'N/A'}</td>
+            <td>${cita.estado ?? 'N/A'}</td>
+        </tr>
+    `).join('');
+}
+
+function cargarDetalleProfesionalEnVista(payload) {
+    const profesional = obtenerDatosProfesionalRespuesta(payload);
+    if (profesional?.rfc) {
+        profesionalDetalleActualRfc = profesional.rfc;
+    }
+    const citas = payload?.citas ?? profesional?.citas ?? [];
+    const totalCitas = payload?.total_citas ?? citas.length;
+    const totalMascotas = payload?.total_mascotas ?? 0;
+    const activo = Boolean(profesional?.activo);
+
+    document.getElementById('ver-profesional-nombre').textContent = profesional?.nombre ?? 'Detalle del Profesional';
+    document.getElementById('ver-profesional-rfc').textContent = `RFC: ${profesional?.rfc ?? '-'}`;
+    document.getElementById('ver-profesional-rfc-valor').textContent = profesional?.rfc ?? '-';
+    document.getElementById('ver-profesional-avatar').textContent = obtenerInicialesProfesional(profesional?.nombre);
+    document.getElementById('ver-profesional-especialidad').textContent = `Especialidad: ${profesional?.especialidad ?? '-'}`;
+    document.getElementById('ver-profesional-estado').textContent = `Estado: ${activo ? 'Activo' : 'Inactivo'}`;
+    document.getElementById('ver-profesional-turno').textContent = `Turno: ${profesional?.turno ?? 'Sin asignar'}`;
+    document.getElementById('ver-profesional-turno-valor').textContent = profesional?.turno ?? 'Sin asignar';
+    document.getElementById('ver-profesional-correo').textContent = `Correo: ${profesional?.correo ?? '-'}`;
+    document.getElementById('ver-profesional-total-citas').textContent = totalCitas;
+    document.getElementById('ver-profesional-total-mascotas').textContent = totalMascotas;
+    renderizarCitasProfesional(citas);
+}
+
+async function verProfesional(rfc) {
+    profesionalDetalleActualRfc = rfc;
+    const modal = document.getElementById('modal-ver-profesional');
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+
+    document.getElementById('ver-profesional-nombre').textContent = 'Cargando...';
+    renderizarCitasProfesional([]);
+
     try {
-  const response = await fetch(`/recepcion/profesionales/${rfc}`);
-        if (!response.ok) {
-            throw new Error('Error al cargar datos del profesional');
-        }
-        
-        const profesional = await response.json();
+        const response = await fetch(urlProfesional(rfc), opcionesFetchProfesional());
+        const payload = await respuestaJsonProfesional(response);
+        cargarDetalleProfesionalEnVista(payload);
+    } catch (error) {
+        console.error('Error cargando profesional:', error);
+        alert('Error al cargar los datos del profesional');
+        cerrarModalVerProfesional();
+    }
+}
+
+function cerrarModalVerProfesional() {
+    const modal = document.getElementById('modal-ver-profesional');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    profesionalDetalleActualRfc = null;
+}
+
+function editarProfesionalDesdeDetalle() {
+    const rfc = profesionalDetalleActualRfc
+        || document.getElementById('ver-profesional-rfc-valor')?.textContent?.trim();
+
+    if (!rfc || rfc === '-') {
+        alert('No se pudo identificar el profesional a editar.');
+        return;
+    }
+
+    cerrarModalVerProfesional();
+    editarProfesional(rfc);
+}
+
+async function eliminarProfesional(rfc) {
+    const rfcEliminar = rfc || document.getElementById('profesional-id')?.value;
+    if (!rfcEliminar) {
+        alert('No se pudo identificar el profesional a eliminar');
+        return;
+    }
+
+    const confirmado = confirm('¿Está seguro de eliminar este profesional? Esta acción no se puede deshacer.');
+    if (!confirmado) {
+        return;
+    }
+
+    try {
+        const response = await fetch(urlProfesional(rfcEliminar), opcionesFetchProfesional({
+            method: 'DELETE',
+        }));
+        const data = await respuestaJsonProfesional(response);
+
+        cerrarModalProfesional();
+        cerrarModalVerProfesional();
+        alert(data?.message || 'Profesional eliminado correctamente');
+        location.reload();
+    } catch (error) {
+        console.error('Error eliminando profesional:', error);
+        alert('Error al eliminar el profesional: ' + error.message);
+    }
+}
+
+async function editarProfesional(rfc) {
+    if (!rfc || rfc === 'null' || rfc === 'undefined') {
+        alert('No se pudo identificar el profesional a editar.');
+        return;
+    }
+
+    try {
+  const response = await fetch(urlProfesional(rfc), opcionesFetchProfesional());
+        const payload = await respuestaJsonProfesional(response);
+        const profesional = obtenerDatosProfesionalRespuesta(payload);
         
         // Llenar el formulario con los datos del profesional
-  document.getElementById('profesional-id').value = profesional.data?.rfc ?? profesional.rfc;
-  const rfcValor = profesional.data?.rfc ?? profesional.rfc;
+  document.getElementById('profesional-id').value = profesional?.rfc ?? rfc;
+  const rfcValor = profesional?.rfc ?? rfc;
   const rfcInput = document.getElementById('profesional-rfc');
   if (rfcInput) {
     rfcInput.value = rfcValor;
   }
   configurarCampoRfcModo(true);
-  document.getElementById('profesional-nombre').value = profesional.data?.nombre ?? profesional.nombre ?? '';
-  document.getElementById('profesional-correo').value = profesional.data?.correo ?? profesional.correo ?? '';
-  marcarEspecialidades(profesional.data?.especialidad ?? profesional.especialidad ?? '');
+  document.getElementById('profesional-nombre').value = profesional?.nombre ?? '';
+  document.getElementById('profesional-correo').value = profesional?.correo ?? '';
+  marcarEspecialidades(profesional?.especialidad ?? '');
   limpiarErroresFormulario();
-  document.getElementById('profesional-turno').value = profesional.data?.turno ?? profesional.turno ?? '';
-  document.getElementById('profesional-activo').checked = Boolean(profesional.data?.activo ?? profesional.activo ?? true);
-        
-        // Abrir modal y cambiar título
+  document.getElementById('profesional-turno').value = profesional?.turno ?? '';
+  document.getElementById('profesional-activo').checked = Boolean(profesional?.activo ?? true);
+
+        const btnEliminar = document.getElementById('btn-eliminar-profesional');
+        if (btnEliminar) {
+            btnEliminar.style.display = 'inline-flex';
+        }
+
         const modal = document.getElementById('modal-profesional');
         if (modal) {
             modal.style.display = 'flex';
@@ -1104,8 +1405,5 @@ async function editarProfesional(rfc) {
     }
 }
 
-function gestionarHorarios(rfc) {
-  alert(`Gestionar turnos del profesional RFC: ${rfc}`);
-}
 </script>
 @endsection
