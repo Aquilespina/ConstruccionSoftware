@@ -1,0 +1,42 @@
+.field-hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--gray-500, #6b7280);
+}
+
+.field-error {
+  display: none;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--danger, #ef4444);
+}
+
+.form-control:invalid:not(:placeholder-shown),
+.form-control.is-invalid,
+select.form-control.is-invalid {
+  border-color: var(--danger, #ef4444);
+}
+
+.form-control[readonly],
+.form-control.form-control-readonly {
+  background-color: var(--gray-100, #f3f4f6);
+  color: var(--gray-700, #374151);
+  cursor: default;
+}
+
+.field-info {
+  display: none;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--gray-600, #4b5563);
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.5rem;
+  line-height: 1.4;
+}
+
+.field-info.is-visible {
+  display: block;
+}

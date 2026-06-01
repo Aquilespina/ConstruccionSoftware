@@ -7,9 +7,17 @@ use App\Models\Mascota\Mascota;
 use App\Support\SimpleXlsxExporter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class MascotaController extends Controller
 {
+    public const ESPECIES = ['perro', 'gato', 'ave', 'roedor', 'reptil'];
+
+    private const NOMBRE_MASCOTA_REGEX = '/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü0-9][A-Za-zÁÉÍÓÚáéíóúÑñÜü0-9\s\.\-]{1,49}$/u';
+
+    private const RAZA_REGEX = '/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü][A-Za-zÁÉÍÓÚáéíóúÑñÜü\s\-]{1,49}$/u';
+
     private function normalizarEstadoMascotaParaVista($value): string
     {
         if (is_bool($value)) {
@@ -63,7 +71,9 @@ class MascotaController extends Controller
 
         $mascotas = $query->orderBy('id_mascota', 'asc')->get();
 
-        return view('dash.recepcion.mascotas', compact('mascotas', 'search'));
+        $especies = self::ESPECIES;
+
+        return view('dash.recepcion.mascotas', compact('mascotas', 'search', 'especies'));
     }
 
     public function buscar(Request $request)
@@ -140,16 +150,11 @@ class MascotaController extends Controller
     public function store(Request $request)
     {
         try {
-            $validated = $request->validate([
-                'nombre' => 'required|string|max:255',
-                'especie' => 'required|string|max:255',
-                'raza' => 'required|string|max:255',
-                'edad' => 'nullable|integer|min:0',
-                'peso' => 'nullable|numeric|min:0',
-                'sexo' => 'nullable|string|max:10',
-                'historial_medico' => 'nullable|string',
-                'id_propietario' => 'required|integer|min:1',
-            ]);
+            $validated = Validator::make(
+                $this->datosParaValidacionMascota($request),
+                $this->reglasMascota(),
+                $this->mensajesValidacionMascota()
+            )->validate();
 
             $columns = DB::select('SHOW COLUMNS FROM mascota');
             $columnNames = array_column($columns, 'Field');
@@ -272,17 +277,11 @@ class MascotaController extends Controller
             $mascota = Mascota::findOrFail($id);
            
 
-            $validated = $request->validate([
-                'nombre' => 'required|string|max:255',
-                'especie' => 'required|string|max:255',
-                'raza' => 'required|string|max:255',
-                'edad' => 'nullable|integer|min:0',
-                'peso' => 'nullable|numeric|min:0',
-                'sexo' => 'nullable|string|max:10',
-                'estado' => 'boolean',
-                'historial_medico' => 'nullable|string',
-                'id_propietario' => 'required|integer|min:1|exists:propietario,id_propietario',
-            ]);
+            $validated = Validator::make(
+                $this->datosParaValidacionMascota($request),
+                $this->reglasMascota(),
+                $this->mensajesValidacionMascota()
+            )->validate();
 
             $columns = DB::select('SHOW COLUMNS FROM mascota');
             $columnNames = array_column($columns, 'Field');
@@ -472,5 +471,70 @@ class MascotaController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function reglasMascota(): array
+    {
+        return [
+            'nombre' => ['required', 'string', 'min:2', 'max:50', 'regex:' . self::NOMBRE_MASCOTA_REGEX],
+            'especie' => ['required', 'string', Rule::in(self::ESPECIES)],
+            'raza' => ['required', 'string', 'min:2', 'max:50', 'regex:' . self::RAZA_REGEX],
+            'edad' => ['nullable', 'integer', 'min:0', 'max:15'],
+            'peso' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'sexo' => ['nullable', 'string', Rule::in(['macho', 'hembra', ''])],
+            'estado' => ['required', Rule::in(['0', '1', 0, 1, 'activo', 'inactivo'])],
+            'historial_medico' => ['nullable', 'string', 'max:2000'],
+            'id_propietario' => ['required', 'integer', 'min:1', 'exists:propietario,id_propietario'],
+        ];
+    }
+
+    private function datosParaValidacionMascota(Request $request): array
+    {
+        $datos = $request->all();
+
+        if (!isset($datos['id_propietario']) && isset($datos['propietario_id'])) {
+            $datos['id_propietario'] = $datos['propietario_id'];
+        }
+
+        if (isset($datos['nombre']) && is_string($datos['nombre'])) {
+            $datos['nombre'] = preg_replace('/\s+/', ' ', trim($datos['nombre']));
+        }
+
+        if (isset($datos['raza']) && is_string($datos['raza'])) {
+            $datos['raza'] = preg_replace('/\s+/', ' ', trim($datos['raza']));
+        }
+
+        if (isset($datos['especie']) && is_string($datos['especie'])) {
+            $datos['especie'] = strtolower(trim($datos['especie']));
+        }
+
+        return $datos;
+    }
+
+    private function mensajesValidacionMascota(): array
+    {
+        return [
+            'nombre.required' => 'El nombre de la mascota es obligatorio.',
+            'nombre.min' => 'El nombre debe tener al menos 2 caracteres.',
+            'nombre.max' => 'El nombre no puede superar 50 caracteres.',
+            'nombre.regex' => 'El nombre solo puede contener letras, números, espacios, puntos y guiones.',
+            'especie.required' => 'La especie es obligatoria.',
+            'especie.in' => 'Seleccione una especie válida.',
+            'raza.required' => 'La raza es obligatoria.',
+            'raza.min' => 'La raza debe tener al menos 2 caracteres.',
+            'raza.max' => 'La raza no puede superar 50 caracteres.',
+            'raza.regex' => 'La raza solo puede contener letras, espacios y guiones.',
+            'edad.integer' => 'La edad debe ser un número entero.',
+            'edad.min' => 'La edad no puede ser negativa.',
+            'edad.max' => 'La edad no puede ser mayor a 15 años.',
+            'peso.numeric' => 'El peso debe ser un número válido.',
+            'peso.min' => 'El peso no puede ser negativo.',
+            'peso.max' => 'El peso no puede ser mayor a 100 kg.',
+            'sexo.in' => 'Seleccione un sexo válido (macho o hembra).',
+            'estado.required' => 'El estado es obligatorio.',
+            'estado.in' => 'El estado seleccionado no es válido.',
+            'id_propietario.required' => 'Debe seleccionar un propietario.',
+            'id_propietario.exists' => 'El propietario seleccionado no existe.',
+        ];
     }
 }

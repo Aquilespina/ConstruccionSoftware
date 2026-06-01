@@ -4,6 +4,7 @@
 
 @push('styles')
   <link rel="stylesheet" href="{{ asset('css/recepcion/medicos.css') }}">
+  <link rel="stylesheet" href="{{ asset('css/recepcion/form-validation.css') }}">
   <style>
     /* Estilos generales */
     :root {
@@ -383,6 +384,59 @@
       border: 1px solid #fecaca;
     }
 
+    .field-hint {
+      display: block;
+      margin-top: 0.25rem;
+      font-size: 0.75rem;
+      color: var(--gray-500);
+    }
+
+    .field-error {
+      display: none;
+      margin-top: 0.25rem;
+      font-size: 0.75rem;
+      color: var(--danger);
+    }
+
+    .form-control:invalid:not(:placeholder-shown),
+    .form-control.is-invalid {
+      border-color: var(--danger);
+    }
+
+    .especialidades-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 0.5rem;
+      margin-top: 0.375rem;
+    }
+
+    .especialidad-option {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--gray-200);
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+
+    .especialidad-option:hover {
+      background-color: var(--gray-50);
+    }
+
+    .especialidad-option:has(input:checked) {
+      border-color: var(--primary);
+      background-color: #ecfdf5;
+    }
+
+    .especialidades-grid.is-invalid {
+      outline: 2px solid var(--danger);
+      outline-offset: 2px;
+      border-radius: 0.5rem;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
       .module-header {
@@ -447,12 +501,9 @@
     <div class="filter-actions">
       <select class="filter-select" id="filter-especialidad">
         <option value="">Todas las especialidades</option>
-        <option value="Cirugía">Cirugía</option>
-        <option value="Dermatología">Dermatología</option>
-        <option value="Cardiología">Cardiología</option>
-        <option value="Oftalmología">Oftalmología</option>
-        <option value="Neurología">Neurología</option>
-        <option value="Medicina General">Medicina General</option>
+        @foreach ($especialidades ?? [] as $esp)
+          <option value="{{ $esp }}">{{ $esp }}</option>
+        @endforeach
       </select>
       <select class="filter-select" id="filter-estado-profesional">
         <option value="">Todos</option>
@@ -518,7 +569,7 @@
         <button class="modal-close" onclick="cerrarModalProfesional()">&times;</button>
       </div>
       <div class="modal-body">
-        <form id="form-profesional" method="POST" action="{{ route('profesionales.store') }}">
+        <form id="form-profesional" method="POST" action="{{ route('profesionales.store') }}" novalidate>
           @csrf
           <input type="hidden" id="profesional-id">
           
@@ -526,23 +577,78 @@
             <h4 class="form-section-title">Información del Profesional</h4>
             <div class="form-row">
               <div class="form-group">
-                <label for="profesional-rfc">RFC *</label>
-                <input type="text" id="profesional-rfc" name="rfc" class="form-control" maxlength="13" required>
+                <label for="profesional-rfc" id="label-profesional-rfc">RFC *</label>
+                <input
+                  type="text"
+                  id="profesional-rfc"
+                  name="rfc"
+                  class="form-control"
+                  maxlength="13"
+                  minlength="12"
+                  autocomplete="off"
+                  autocapitalize="characters"
+                  spellcheck="false"
+                  pattern="^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$"
+                  title="RFC válido: 3-4 letras, 6 dígitos y 3 caracteres alfanuméricos (12 o 13 caracteres). Ej: XAXX010101000"
+                  placeholder="XAXX010101000"
+                  required>
+                <small class="field-hint" id="hint-profesional-rfc">12 o 13 caracteres. Solo letras, números y Ñ.</small>
+                <small class="field-error" id="error-profesional-rfc"></small>
+                <p class="field-info" id="info-profesional-rfc-edit">
+                  El RFC es el identificador único del profesional y no se puede modificar al editar.
+                  Puede actualizar nombre, correo, especialidades, turno y estado.
+                  Si el RFC fue registrado por error, cree un profesional nuevo con el RFC correcto y desactive este.
+                </p>
               </div>
               <div class="form-group">
                 <label for="profesional-nombre">Nombre *</label>
-                <input type="text" id="profesional-nombre" name="nombre" class="form-control" required>
+                <input
+                  type="text"
+                  id="profesional-nombre"
+                  name="nombre"
+                  class="form-control"
+                  minlength="2"
+                  maxlength="100"
+                  pattern="^[A-Za-zÁÉÍÓÚáéíóúÑñÜü][A-Za-zÁÉÍÓÚáéíóúÑñÜü\s\.\-]{1,99}$"
+                  title="Solo letras, espacios, puntos y guiones (mínimo 2 caracteres)."
+                  placeholder="Ej: María González"
+                  required>
+                <small class="field-error" id="error-profesional-nombre"></small>
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label for="profesional-correo">Correo</label>
-                <input type="email" id="profesional-correo" name="correo" class="form-control">
+                <label for="profesional-correo">Correo *</label>
+                <input
+                  type="email"
+                  id="profesional-correo"
+                  name="correo"
+                  class="form-control"
+                  maxlength="100"
+                  inputmode="email"
+                  autocomplete="email"
+                  placeholder="nombre@clinica.com"
+                  required>
+                <small class="field-hint">Formato de correo electrónico válido.</small>
+                <small class="field-error" id="error-profesional-correo"></small>
               </div>
-              <div class="form-group">
-                <label for="profesional-especialidad">Especialidad</label>
-                <input type="text" id="profesional-especialidad" name="especialidad" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Especialidades *</label>
+              <div class="especialidades-grid" id="especialidades-grid">
+                @foreach ($especialidades ?? [] as $esp)
+                  <label class="especialidad-option">
+                    <input
+                      type="checkbox"
+                      name="especialidades[]"
+                      value="{{ $esp }}"
+                      class="profesional-especialidad-check">
+                    <span>{{ $esp }}</span>
+                  </label>
+                @endforeach
               </div>
+              <small class="field-hint">Seleccione al menos una especialidad.</small>
+              <small class="field-error" id="error-profesional-especialidades"></small>
             </div>
           </div>
 
@@ -575,29 +681,231 @@
 </section>
 
 <script>
+const RFC_PATTERN = /^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$/;
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Inicializar funcionalidades del módulo de profesionales
     const btnNuevoProfesional = document.getElementById('btn-nuevo-profesional');
     if (btnNuevoProfesional) {
         btnNuevoProfesional.addEventListener('click', abrirModalProfesional);
     }
-    
-    // Filtros de búsqueda
+
     const searchInput = document.getElementById('search-profesionales');
     if (searchInput) {
         searchInput.addEventListener('input', filtrarProfesionales);
     }
 
-    // Filtros de especialidad y estado
     const filterEspecialidad = document.getElementById('filter-especialidad');
     const filterEstado = document.getElementById('filter-estado-profesional');
-    
+
     if (filterEspecialidad && filterEstado) {
         [filterEspecialidad, filterEstado].forEach(select => {
             select.addEventListener('change', aplicarFiltrosProfesionales);
         });
     }
+
+    const rfcInput = document.getElementById('profesional-rfc');
+    if (rfcInput) {
+        rfcInput.addEventListener('input', aplicarMascaraRfc);
+        rfcInput.addEventListener('blur', () => validarCampoRfc(rfcInput));
+    }
+
+    const nombreInput = document.getElementById('profesional-nombre');
+    if (nombreInput) {
+        nombreInput.addEventListener('blur', () => validarCampoNombre(nombreInput));
+    }
+
+    const correoInput = document.getElementById('profesional-correo');
+    if (correoInput) {
+        correoInput.addEventListener('blur', () => validarCampoCorreo(correoInput));
+    }
+
+    document.querySelectorAll('.profesional-especialidad-check').forEach(checkbox => {
+        checkbox.addEventListener('change', validarEspecialidades);
+    });
 });
+
+function aplicarMascaraRfc(event) {
+    const input = event.target;
+    input.value = input.value.toUpperCase().replace(/[^A-ZÑ&0-9]/g, '').slice(0, 13);
+    limpiarErrorCampo('profesional-rfc');
+}
+
+function validarCampoRfc(input) {
+    const valor = input.value.trim();
+    if (!valor) {
+        mostrarErrorCampo('profesional-rfc', 'El RFC es obligatorio.');
+        return false;
+    }
+    if (valor.length < 12 || valor.length > 13) {
+        mostrarErrorCampo('profesional-rfc', 'El RFC debe tener 12 o 13 caracteres.');
+        return false;
+    }
+    if (!RFC_PATTERN.test(valor)) {
+        mostrarErrorCampo('profesional-rfc', 'Formato inválido. Ejemplo: XAXX010101000');
+        return false;
+    }
+    limpiarErrorCampo('profesional-rfc');
+    return true;
+}
+
+function validarCampoNombre(input) {
+    const valor = input.value.trim();
+    const nombrePattern = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü][A-Za-zÁÉÍÓÚáéíóúÑñÜü\s\.\-]{1,99}$/;
+    if (!valor) {
+        mostrarErrorCampo('profesional-nombre', 'El nombre es obligatorio.');
+        return false;
+    }
+    if (!nombrePattern.test(valor)) {
+        mostrarErrorCampo('profesional-nombre', 'Solo letras, espacios, puntos y guiones (mín. 2 caracteres).');
+        return false;
+    }
+    limpiarErrorCampo('profesional-nombre');
+    return true;
+}
+
+function validarCampoCorreo(input) {
+    const valor = input.value.trim();
+    if (!valor) {
+        mostrarErrorCampo('profesional-correo', 'El correo es obligatorio.');
+        return false;
+    }
+    if (!input.checkValidity()) {
+        mostrarErrorCampo('profesional-correo', 'Ingrese un correo electrónico válido.');
+        return false;
+    }
+    limpiarErrorCampo('profesional-correo');
+    return true;
+}
+
+function validarEspecialidades() {
+    const seleccionadas = document.querySelectorAll('.profesional-especialidad-check:checked');
+    const grid = document.getElementById('especialidades-grid');
+    const errorEl = document.getElementById('error-profesional-especialidades');
+
+    if (seleccionadas.length === 0) {
+        if (grid) grid.classList.add('is-invalid');
+        if (errorEl) {
+            errorEl.textContent = 'Seleccione al menos una especialidad.';
+            errorEl.style.display = 'block';
+        }
+        return false;
+    }
+
+    if (grid) grid.classList.remove('is-invalid');
+    if (errorEl) {
+        errorEl.textContent = '';
+        errorEl.style.display = 'none';
+    }
+    return true;
+}
+
+function mostrarErrorCampo(fieldId, mensaje) {
+    const input = document.getElementById(fieldId);
+    const errorEl = document.getElementById('error-' + fieldId);
+    if (input) input.classList.add('is-invalid');
+    if (errorEl) {
+        errorEl.textContent = mensaje;
+        errorEl.style.display = 'block';
+    }
+}
+
+function limpiarErrorCampo(fieldId) {
+    const input = document.getElementById(fieldId);
+    const errorEl = document.getElementById('error-' + fieldId);
+    if (input) input.classList.remove('is-invalid');
+    if (errorEl) {
+        errorEl.textContent = '';
+        errorEl.style.display = 'none';
+    }
+}
+
+function limpiarErroresFormulario() {
+    ['profesional-rfc', 'profesional-nombre', 'profesional-correo'].forEach(limpiarErrorCampo);
+    document.getElementById('especialidades-grid')?.classList.remove('is-invalid');
+    const errorEsp = document.getElementById('error-profesional-especialidades');
+    if (errorEsp) {
+        errorEsp.textContent = '';
+        errorEsp.style.display = 'none';
+    }
+}
+
+function marcarEspecialidades(valorGuardado) {
+    const valores = (valorGuardado || '')
+        .split(',')
+        .map(v => v.trim())
+        .filter(Boolean);
+
+    document.querySelectorAll('.profesional-especialidad-check').forEach(checkbox => {
+        checkbox.checked = valores.includes(checkbox.value);
+    });
+}
+
+function esEdicionProfesional() {
+    return Boolean(document.getElementById('profesional-id')?.value?.trim());
+}
+
+function configurarCampoRfcModo(edicion) {
+    const rfcInput = document.getElementById('profesional-rfc');
+    const labelRfc = document.getElementById('label-profesional-rfc');
+    const hintRfc = document.getElementById('hint-profesional-rfc');
+    const infoEdicion = document.getElementById('info-profesional-rfc-edit');
+
+    if (!rfcInput) {
+        return;
+    }
+
+    if (edicion) {
+        rfcInput.readOnly = true;
+        rfcInput.disabled = false;
+        rfcInput.removeAttribute('required');
+        rfcInput.classList.add('form-control-readonly');
+        if (labelRfc) {
+            labelRfc.textContent = 'RFC (identificador)';
+        }
+        if (hintRfc) {
+            hintRfc.textContent = 'Solo lectura: el RFC identifica al profesional en el sistema.';
+        }
+        if (infoEdicion) {
+            infoEdicion.classList.add('is-visible');
+        }
+    } else {
+        rfcInput.readOnly = false;
+        rfcInput.disabled = false;
+        rfcInput.setAttribute('required', 'required');
+        rfcInput.classList.remove('form-control-readonly');
+        if (labelRfc) {
+            labelRfc.textContent = 'RFC *';
+        }
+        if (hintRfc) {
+            hintRfc.textContent = '12 o 13 caracteres. Solo letras, números y Ñ.';
+        }
+        if (infoEdicion) {
+            infoEdicion.classList.remove('is-visible');
+        }
+    }
+}
+
+function validarFormularioProfesional() {
+    const esEdicion = esEdicionProfesional();
+    const rfcOk = esEdicion ? true : validarCampoRfc(document.getElementById('profesional-rfc'));
+    const nombreOk = validarCampoNombre(document.getElementById('profesional-nombre'));
+    const correoOk = validarCampoCorreo(document.getElementById('profesional-correo'));
+    const especialidadesOk = validarEspecialidades();
+    const form = document.getElementById('form-profesional');
+
+    if (esEdicion && form) {
+        const camposEditables = form.querySelectorAll('input:not([readonly]):not([type="hidden"]), select, textarea');
+        let formularioValido = true;
+        camposEditables.forEach((campo) => {
+            if (!campo.checkValidity()) {
+                formularioValido = false;
+            }
+        });
+        return nombreOk && correoOk && especialidadesOk && formularioValido;
+    }
+
+    return rfcOk && nombreOk && correoOk && especialidadesOk && (form ? form.checkValidity() : false);
+}
 
 function aplicarFiltrosProfesionales() {
   const especialidad = document.getElementById('filter-especialidad').value.toLowerCase();
@@ -637,10 +945,11 @@ function abrirModalProfesional() {
         document.getElementById('modal-profesional-titulo').textContent = 'Nuevo Profesional';
         document.getElementById('form-profesional').reset();
         document.getElementById('profesional-id').value = '';
-    const chk = document.getElementById('profesional-activo');
-    if (chk) chk.checked = true;
-    const rfcInput = document.getElementById('profesional-rfc');
-    if (rfcInput) rfcInput.disabled = false;
+        limpiarErroresFormulario();
+        marcarEspecialidades('');
+        const chk = document.getElementById('profesional-activo');
+        if (chk) chk.checked = true;
+        configurarCampoRfcModo(false);
     }
 }
 
@@ -652,15 +961,12 @@ function cerrarModalProfesional() {
 async function guardarProfesional() {
     const form = document.getElementById('form-profesional');
     if (!form) return;
-    
-    // Validación básica
-  const rfc = document.getElementById('profesional-rfc').value;
-  const nombre = document.getElementById('profesional-nombre').value;
-    
-  if (!rfc || !nombre) {
-        alert('Por favor, complete todos los campos obligatorios (*)');
+
+    if (!validarFormularioProfesional()) {
+        alert('Revise los campos marcados antes de guardar.');
         return;
     }
+
   // Enviar al endpoint web configurado en el action del formulario
   const formData = new FormData(form);
   const profesionalRfc = document.getElementById('profesional-id').value;
@@ -772,12 +1078,16 @@ async function editarProfesional(rfc) {
         
         // Llenar el formulario con los datos del profesional
   document.getElementById('profesional-id').value = profesional.data?.rfc ?? profesional.rfc;
+  const rfcValor = profesional.data?.rfc ?? profesional.rfc;
   const rfcInput = document.getElementById('profesional-rfc');
-  rfcInput.value = profesional.data?.rfc ?? profesional.rfc;
-  rfcInput.disabled = true; // No permitir editar RFC (PK)
+  if (rfcInput) {
+    rfcInput.value = rfcValor;
+  }
+  configurarCampoRfcModo(true);
   document.getElementById('profesional-nombre').value = profesional.data?.nombre ?? profesional.nombre ?? '';
   document.getElementById('profesional-correo').value = profesional.data?.correo ?? profesional.correo ?? '';
-  document.getElementById('profesional-especialidad').value = profesional.data?.especialidad ?? profesional.especialidad ?? '';
+  marcarEspecialidades(profesional.data?.especialidad ?? profesional.especialidad ?? '');
+  limpiarErroresFormulario();
   document.getElementById('profesional-turno').value = profesional.data?.turno ?? profesional.turno ?? '';
   document.getElementById('profesional-activo').checked = Boolean(profesional.data?.activo ?? profesional.activo ?? true);
         

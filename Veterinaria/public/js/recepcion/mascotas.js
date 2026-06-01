@@ -107,6 +107,149 @@ function normalizarEstadoMascota(estado) {
     return 'activo';
 }
 
+const MASCOTA_CAMPOS_VALIDACION = [
+    'mascota-nombre',
+    'mascota-especie',
+    'mascota-raza',
+    'mascota-propietario',
+    'mascota-edad',
+    'mascota-peso',
+    'mascota-sexo',
+    'mascota-estado',
+];
+
+const MASCOTA_NOMBRE_PATTERN = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü0-9][A-Za-zÁÉÍÓÚáéíóúÑñÜü0-9\s\.\-]{1,49}$/;
+const MASCOTA_RAZA_PATTERN = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü][A-Za-zÁÉÍÓÚáéíóúÑñÜü\s\-]{1,49}$/;
+
+function limpiarErroresMascota() {
+    if (typeof FormValidation !== 'undefined') {
+        FormValidation.limpiarErrores(MASCOTA_CAMPOS_VALIDACION);
+    }
+}
+
+function validarCampoMascotaNombre(input) {
+    const valor = input.value.trim();
+    if (!valor) {
+        FormValidation.mostrarErrorCampo('mascota-nombre', 'El nombre es obligatorio.');
+        return false;
+    }
+    if (!MASCOTA_NOMBRE_PATTERN.test(valor)) {
+        FormValidation.mostrarErrorCampo('mascota-nombre', 'Use letras, números, espacios, puntos o guiones (mín. 2 caracteres).');
+        return false;
+    }
+    FormValidation.limpiarErrorCampo('mascota-nombre');
+    return true;
+}
+
+function validarCampoMascotaEspecie(select) {
+    if (!select.value) {
+        FormValidation.mostrarErrorCampo('mascota-especie', 'Seleccione una especie.');
+        return false;
+    }
+    FormValidation.limpiarErrorCampo('mascota-especie');
+    return true;
+}
+
+function validarCampoMascotaRaza(input) {
+    const valor = input.value.trim();
+    if (!valor) {
+        FormValidation.mostrarErrorCampo('mascota-raza', 'La raza es obligatoria.');
+        return false;
+    }
+    if (!MASCOTA_RAZA_PATTERN.test(valor)) {
+        FormValidation.mostrarErrorCampo('mascota-raza', 'Solo letras, espacios y guiones (mín. 2 caracteres).');
+        return false;
+    }
+    FormValidation.limpiarErrorCampo('mascota-raza');
+    return true;
+}
+
+function validarCampoMascotaPropietario(select) {
+    if (!select.value) {
+        FormValidation.mostrarErrorCampo('mascota-propietario', 'Seleccione un propietario.');
+        return false;
+    }
+    FormValidation.limpiarErrorCampo('mascota-propietario');
+    return true;
+}
+
+function validarCampoMascotaEdad(input) {
+    const valor = input.value.trim();
+    if (valor === '') {
+        FormValidation.limpiarErrorCampo('mascota-edad');
+        return true;
+    }
+    const edad = Number(valor);
+    if (!Number.isInteger(edad) || edad < 0 || edad > 15) {
+        FormValidation.mostrarErrorCampo('mascota-edad', 'La edad debe ser un número entre 0 y 15.');
+        return false;
+    }
+    FormValidation.limpiarErrorCampo('mascota-edad');
+    return true;
+}
+
+function validarCampoMascotaPeso(input) {
+    const valor = input.value.trim();
+    if (valor === '') {
+        FormValidation.limpiarErrorCampo('mascota-peso');
+        return true;
+    }
+    const peso = Number(valor);
+    if (Number.isNaN(peso) || peso < 0 || peso > 100) {
+        FormValidation.mostrarErrorCampo('mascota-peso', 'El peso debe estar entre 0 y 100 kg.');
+        return false;
+    }
+    FormValidation.limpiarErrorCampo('mascota-peso');
+    return true;
+}
+
+function validarFormularioMascota() {
+    const nombreOk = validarCampoMascotaNombre(document.getElementById('mascota-nombre'));
+    const especieOk = validarCampoMascotaEspecie(document.getElementById('mascota-especie'));
+    const razaOk = validarCampoMascotaRaza(document.getElementById('mascota-raza'));
+    const propietarioOk = validarCampoMascotaPropietario(document.getElementById('mascota-propietario'));
+    const edadOk = validarCampoMascotaEdad(document.getElementById('mascota-edad'));
+    const pesoOk = validarCampoMascotaPeso(document.getElementById('mascota-peso'));
+    const form = document.getElementById('form-mascota');
+
+    return nombreOk && especieOk && razaOk && propietarioOk && edadOk && pesoOk
+        && (form ? form.checkValidity() : false);
+}
+
+function inicializarValidacionMascota() {
+    const nombre = document.getElementById('mascota-nombre');
+    const especie = document.getElementById('mascota-especie');
+    const raza = document.getElementById('mascota-raza');
+    const propietario = document.getElementById('mascota-propietario');
+    const edad = document.getElementById('mascota-edad');
+    const peso = document.getElementById('mascota-peso');
+
+    if (nombre && !nombre.dataset.validacionAsignada) {
+        nombre.addEventListener('blur', () => validarCampoMascotaNombre(nombre));
+        nombre.dataset.validacionAsignada = '1';
+    }
+    if (especie && !especie.dataset.validacionAsignada) {
+        especie.addEventListener('change', () => validarCampoMascotaEspecie(especie));
+        especie.dataset.validacionAsignada = '1';
+    }
+    if (raza && !raza.dataset.validacionAsignada) {
+        raza.addEventListener('blur', () => validarCampoMascotaRaza(raza));
+        raza.dataset.validacionAsignada = '1';
+    }
+    if (propietario && !propietario.dataset.validacionAsignada) {
+        propietario.addEventListener('change', () => validarCampoMascotaPropietario(propietario));
+        propietario.dataset.validacionAsignada = '1';
+    }
+    if (edad && !edad.dataset.validacionAsignada) {
+        edad.addEventListener('blur', () => validarCampoMascotaEdad(edad));
+        edad.dataset.validacionAsignada = '1';
+    }
+    if (peso && !peso.dataset.validacionAsignada) {
+        peso.addEventListener('blur', () => validarCampoMascotaPeso(peso));
+        peso.dataset.validacionAsignada = '1';
+    }
+}
+
 function normalizarTextoFiltroMascota(valor) {
     return String(valor || '').trim().toLowerCase();
 }
@@ -353,6 +496,8 @@ function initModuloMascotas() {
             cerrarModalVerMascota();
         }
     });
+
+    inicializarValidacionMascota();
 }
 
 function aplicarFiltros() {
@@ -463,10 +608,9 @@ async function abrirModalMascota() {
             const form = document.getElementById('form-mascota');
             if (form) {
                 form.reset();
-                // Remover el ID de edición si existe
                 delete form.dataset.mascotaId;
-                // Establecer estado por defecto a "activo"
-                document.getElementById('mascota-estado').value = 'activo';
+                limpiarErroresMascota();
+                document.getElementById('mascota-estado').value = '1';
             }
         }
 
@@ -493,28 +637,24 @@ async function guardarMascota() {
         return;
     }
     
-    // Validación básica
-    const nombre = document.getElementById('mascota-nombre').value;
-    const especie = document.getElementById('mascota-especie').value;
-    const raza = document.getElementById('mascota-raza').value;
-    const propietarioId = document.getElementById('mascota-propietario').value;
-    
-    if (!nombre || !especie || !raza || !propietarioId) {
-        alert('Por favor, complete todos los campos obligatorios (*)');
+    if (!validarFormularioMascota()) {
+        alert('Revise los campos marcados antes de guardar.');
         return;
     }
-    
-    // Preparar datos para enviar
+
+    const edadValor = document.getElementById('mascota-edad').value.trim();
+    const pesoValor = document.getElementById('mascota-peso').value.trim();
+
     const mascotaData = {
-        nombre: nombre,
-        especie: especie,
-        raza: raza,
-        edad: document.getElementById('mascota-edad').value,
-        peso: document.getElementById('mascota-peso').value,
+        nombre: document.getElementById('mascota-nombre').value.trim(),
+        especie: document.getElementById('mascota-especie').value,
+        raza: document.getElementById('mascota-raza').value.trim(),
+        edad: edadValor === '' ? null : parseInt(edadValor, 10),
+        peso: pesoValor === '' ? null : parseFloat(pesoValor),
         sexo: document.getElementById('mascota-sexo').value,
         estado: document.getElementById('mascota-estado').value,
         historial_medico: document.getElementById('mascota-historial')?.value || '',
-        id_propietario: parseInt(propietarioId)
+        id_propietario: parseInt(document.getElementById('mascota-propietario').value, 10),
     };
     
     // Determinar si es creación o edición
@@ -539,7 +679,17 @@ async function guardarMascota() {
 
             if (contentType.includes('application/json')) {
                 const errorData = await response.json();
-                errorMessage = errorData.message || errorData.error || errorMessage;
+                if (errorData.errors && typeof errorData.errors === 'object') {
+                    const mensajes = [];
+                    Object.values(errorData.errors).forEach((msgs) => {
+                        if (Array.isArray(msgs)) {
+                            mensajes.push(msgs[0]);
+                        }
+                    });
+                    errorMessage = mensajes.join('\n') || errorData.message || errorMessage;
+                } else {
+                    errorMessage = errorData.message || errorData.error || errorMessage;
+                }
             } else {
                 const errorText = await response.text();
                 errorMessage = errorText.includes('<!DOCTYPE') || errorText.includes('<script>')
@@ -606,13 +756,15 @@ async function editarMascota(id) {
         
         // Llenar el formulario con los datos de la mascota
         document.getElementById('mascota-nombre').value = mascota.nombre || '';
-        document.getElementById('mascota-especie').value = mascota.especie || '';
+        document.getElementById('mascota-especie').value = String(mascota.especie || '').toLowerCase();
         document.getElementById('mascota-raza').value = mascota.raza || '';
         document.getElementById('mascota-propietario').value = mascota.id_propietario || '';
-        document.getElementById('mascota-edad').value = mascota.edad || '';
-        document.getElementById('mascota-peso').value = mascota.peso || '';
+        document.getElementById('mascota-edad').value = mascota.edad ?? '';
+        document.getElementById('mascota-peso').value = mascota.peso ?? '';
         document.getElementById('mascota-sexo').value = normalizarSexoMascota(mascota.sexo);
-        document.getElementById('mascota-estado').value = normalizarEstadoMascota(mascota.estado);
+        const estadoNorm = normalizarEstadoMascota(mascota.estado);
+        document.getElementById('mascota-estado').value = estadoNorm === 'inactivo' ? '0' : '1';
+        limpiarErroresMascota();
         
         // Llenar historial médico si existe el campo
         const historialInput = document.getElementById('mascota-historial');

@@ -2,7 +2,7 @@
 @section('page-title', 'Mascotas')
 @push('styles')
   <link rel="stylesheet" href="{{ asset('css/recepcion/mascotas.css') }}">
-
+  <link rel="stylesheet" href="{{ asset('css/recepcion/form-validation.css') }}">
 @endpush
 @section('content')
 <section id="mod-mascotas" class="module active">
@@ -34,11 +34,9 @@
     <div class="filter-actions">
       <select class="filter-select" id="filter-especie">
         <option value="">Todas las especies</option>
-        <option value="perro">Perro</option>
-        <option value="gato">Gato</option>
-        <option value="ave">Ave</option>
-        <option value="roedor">Roedor</option>
-        <option value="reptil">Reptil</option>
+        @foreach ($especies ?? [] as $esp)
+          <option value="{{ $esp }}">{{ ucfirst($esp) }}</option>
+        @endforeach
       </select>
       <select class="filter-select" id="filter-estado-mascota">
         <option value="">Todos los estados</option>
@@ -110,67 +108,87 @@
         <button class="modal-close" onclick="cerrarModalMascota()">&times;</button>
       </div>
       <div class="modal-body">
-        <form id="form-mascota">
+        <form id="form-mascota" novalidate>
           @csrf
           <div class="form-row">
             <div class="form-group">
               <label for="mascota-nombre">Nombre *</label>
-              <input type="text" id="mascota-nombre" name="nombre" class="form-control" required>
+              <input
+                type="text"
+                id="mascota-nombre"
+                name="nombre"
+                class="form-control"
+                minlength="2"
+                maxlength="50"
+                pattern="^[A-Za-zÁÉÍÓÚáéíóúÑñÜü0-9][A-Za-zÁÉÍÓÚáéíóúÑñÜü0-9\s\.\-]{1,49}$"
+                title="Letras, números, espacios, puntos y guiones (mín. 2 caracteres)."
+                placeholder="Ej: Firulais"
+                required>
+              <small class="field-error" id="error-mascota-nombre"></small>
             </div>
             <div class="form-group">
               <label for="mascota-especie">Especie *</label>
               <select id="mascota-especie" name="especie" class="form-control" required>
                 <option value="">Seleccionar especie</option>
-                <option value="perro">Perro</option>
-                <option value="gato">Gato</option>
-                <option value="ave">Ave</option>
-                <option value="roedor">Roedor</option>
-                <option value="reptil">Reptil</option>
+                @foreach ($especies ?? [] as $esp)
+                  <option value="{{ $esp }}">{{ ucfirst($esp) }}</option>
+                @endforeach
               </select>
+              <small class="field-error" id="error-mascota-especie"></small>
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
               <label for="mascota-raza">Raza *</label>
-<input
-    type="text"
-    id="mascota-raza"
-    name="raza"
-    class="form-control"
-    minlength="2"
-    maxlength="50"
-    pattern="^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s\-]+$"
-    required>
+              <input
+                type="text"
+                id="mascota-raza"
+                name="raza"
+                class="form-control"
+                minlength="2"
+                maxlength="50"
+                pattern="^[A-Za-zÁÉÍÓÚáéíóúÑñÜü][A-Za-zÁÉÍÓÚáéíóúÑñÜü\s\-]{1,49}$"
+                title="Solo letras, espacios y guiones (mín. 2 caracteres)."
+                placeholder="Ej: Labrador"
+                required>
+              <small class="field-error" id="error-mascota-raza"></small>
             </div>
             <div class="form-group">
               <label for="mascota-propietario">Propietario *</label>
               <select id="mascota-propietario" name="propietario_id" class="form-control" required>
                 <option value="">Seleccionar propietario</option>
-                <option value="1">María Rodríguez</option>
-                <option value="2">Carlos Pérez</option>
-                <option value="3">Ana González</option>
               </select>
+              <small class="field-error" id="error-mascota-propietario"></small>
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label for="mascota-edad">Edad</label>
-<input
-    type="number"
-    id="mascota-edad"
-    name="edad"
-    class="form-control"
-    min="0"
-    max="15"
-    oninput="if(this.value > 15) this.value = 15";
-    placeholder="Ej: 3">            </div>
+              <label for="mascota-edad">Edad (años)</label>
+              <input
+                type="number"
+                id="mascota-edad"
+                name="edad"
+                class="form-control"
+                min="0"
+                max="15"
+                step="1"
+                placeholder="Ej: 3">
+              <small class="field-hint">Opcional. Máximo 15 años.</small>
+              <small class="field-error" id="error-mascota-edad"></small>
+            </div>
             <div class="form-group">
               <label for="mascota-peso">Peso (kg)</label>
-              <input type="number" id="mascota-peso" name="peso" class="form-control" step="0.1"
-                  min="0"
-                 max="100"
-                 oninput="if(this.value > 100) this.value = 100;"
-                 >
+              <input
+                type="number"
+                id="mascota-peso"
+                name="peso"
+                class="form-control"
+                step="0.1"
+                min="0"
+                max="100"
+                placeholder="Ej: 12.5">
+              <small class="field-hint">Opcional. Entre 0 y 100 kg.</small>
+              <small class="field-error" id="error-mascota-peso"></small>
             </div>
           </div>
           <div class="form-row">
@@ -181,6 +199,7 @@
                 <option value="macho">Macho</option>
                 <option value="hembra">Hembra</option>
               </select>
+              <small class="field-error" id="error-mascota-sexo"></small>
             </div>
             <div class="form-group">
               <label for="mascota-estado">Estado *</label>
@@ -188,6 +207,7 @@
                 <option value="1">Activo</option>
                 <option value="0">Inactivo</option>
               </select>
+              <small class="field-error" id="error-mascota-estado"></small>
             </div>
           </div>
         </form>
@@ -270,6 +290,7 @@
   </div>
 </section>
 
+<script src="{{ asset('js/recepcion/form-validation.js') }}"></script>
 <script src="{{ asset('js/recepcion/mascotas.js') }}"></script>
 
 <script>

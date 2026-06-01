@@ -1,3 +1,119 @@
+const PROPIETARIO_CAMPOS_VALIDACION = [
+    'propietario-nombre',
+    'propietario-telefono',
+    'propietario-email',
+    'propietario-direccion',
+];
+
+const PROPIETARIO_NOMBRE_PATTERN = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü][A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]{1,29}$/;
+const PROPIETARIO_TELEFONO_PATTERN = /^[0-9]{10}$/;
+
+function limpiarErroresPropietario() {
+    if (typeof FormValidation !== 'undefined') {
+        FormValidation.limpiarErrores(PROPIETARIO_CAMPOS_VALIDACION);
+    }
+}
+
+function aplicarMascaraNombrePropietario(event) {
+    event.target.value = event.target.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]/g, '').replace(/\s+/g, ' ');
+}
+
+function aplicarMascaraTelefonoPropietario(event) {
+    event.target.value = event.target.value.replace(/[^0-9]/g, '').slice(0, 10);
+}
+
+function validarCampoPropietarioNombre(input) {
+    const valor = input.value.trim();
+    if (!valor) {
+        FormValidation.mostrarErrorCampo('propietario-nombre', 'El nombre es obligatorio.');
+        return false;
+    }
+    if (!PROPIETARIO_NOMBRE_PATTERN.test(valor)) {
+        FormValidation.mostrarErrorCampo('propietario-nombre', 'Solo letras y espacios (mín. 2, máx. 30 caracteres).');
+        return false;
+    }
+    FormValidation.limpiarErrorCampo('propietario-nombre');
+    return true;
+}
+
+function validarCampoPropietarioTelefono(input) {
+    const valor = input.value.trim();
+    if (!valor) {
+        FormValidation.mostrarErrorCampo('propietario-telefono', 'El teléfono es obligatorio.');
+        return false;
+    }
+    if (!PROPIETARIO_TELEFONO_PATTERN.test(valor)) {
+        FormValidation.mostrarErrorCampo('propietario-telefono', 'El teléfono debe tener exactamente 10 dígitos.');
+        return false;
+    }
+    FormValidation.limpiarErrorCampo('propietario-telefono');
+    return true;
+}
+
+function validarCampoPropietarioEmail(input) {
+    const valor = input.value.trim();
+    if (!valor) {
+        FormValidation.mostrarErrorCampo('propietario-email', 'El correo es obligatorio.');
+        return false;
+    }
+    if (!input.checkValidity()) {
+        FormValidation.mostrarErrorCampo('propietario-email', 'Ingrese un correo electrónico válido.');
+        return false;
+    }
+    FormValidation.limpiarErrorCampo('propietario-email');
+    return true;
+}
+
+function validarCampoPropietarioDireccion(textarea) {
+    const valor = textarea.value.trim();
+    if (!valor) {
+        FormValidation.mostrarErrorCampo('propietario-direccion', 'La dirección es obligatoria.');
+        return false;
+    }
+    if (valor.length < 10) {
+        FormValidation.mostrarErrorCampo('propietario-direccion', 'La dirección debe tener al menos 10 caracteres.');
+        return false;
+    }
+    FormValidation.limpiarErrorCampo('propietario-direccion');
+    return true;
+}
+
+function validarFormularioPropietario() {
+    const nombreOk = validarCampoPropietarioNombre(document.getElementById('propietario-nombre'));
+    const telefonoOk = validarCampoPropietarioTelefono(document.getElementById('propietario-telefono'));
+    const emailOk = validarCampoPropietarioEmail(document.getElementById('propietario-email'));
+    const direccionOk = validarCampoPropietarioDireccion(document.getElementById('propietario-direccion'));
+    const form = document.getElementById('form-propietario');
+
+    return nombreOk && telefonoOk && emailOk && direccionOk && (form ? form.checkValidity() : false);
+}
+
+function inicializarValidacionPropietario() {
+    const nombre = document.getElementById('propietario-nombre');
+    const telefono = document.getElementById('propietario-telefono');
+    const email = document.getElementById('propietario-email');
+    const direccion = document.getElementById('propietario-direccion');
+
+    if (nombre && !nombre.dataset.validacionAsignada) {
+        nombre.addEventListener('input', aplicarMascaraNombrePropietario);
+        nombre.addEventListener('blur', () => validarCampoPropietarioNombre(nombre));
+        nombre.dataset.validacionAsignada = '1';
+    }
+    if (telefono && !telefono.dataset.validacionAsignada) {
+        telefono.addEventListener('input', aplicarMascaraTelefonoPropietario);
+        telefono.addEventListener('blur', () => validarCampoPropietarioTelefono(telefono));
+        telefono.dataset.validacionAsignada = '1';
+    }
+    if (email && !email.dataset.validacionAsignada) {
+        email.addEventListener('blur', () => validarCampoPropietarioEmail(email));
+        email.dataset.validacionAsignada = '1';
+    }
+    if (direccion && !direccion.dataset.validacionAsignada) {
+        direccion.addEventListener('blur', () => validarCampoPropietarioDireccion(direccion));
+        direccion.dataset.validacionAsignada = '1';
+    }
+}
+
 function inicializarPropietarios() {
     const btnNuevo = document.getElementById('btn-nuevo-propietario');
     if (btnNuevo && !btnNuevo.dataset.listenerAsignado) {
@@ -27,6 +143,8 @@ function inicializarPropietarios() {
         filtroEstado.addEventListener('change', buscarPropietarios);
         filtroEstado.dataset.listenerAsignado = '1';
     }
+
+    inicializarValidacionPropietario();
 }
 
 if (document.readyState === 'loading') {
@@ -41,6 +159,7 @@ function abrirModalPropietario() {
     modal.style.display = 'flex';
     document.getElementById('modal-propietario-titulo').textContent = 'Nuevo Propietario';
     document.getElementById('form-propietario').reset();
+    limpiarErroresPropietario();
 
         const eliminarBtn = document.getElementById('btn-eliminar-propietario');
         if (eliminarBtn) {
@@ -87,16 +206,11 @@ async function guardarPropietario() {
         return;
     }
     
-    // Validar campos requeridos
-    const nombre = document.getElementById('propietario-nombre').value;
-    if (!nombre.trim()) {
-        alert('El nombre es requerido');
+    if (!validarFormularioPropietario()) {
+        alert('Revise los campos marcados antes de guardar.');
         return;
-    }if (!form.checkValidity()) {
-    form.reportValidity();
-    return;
-}
-    
+    }
+
     const url = form.getAttribute('action');
     const formData = new FormData(form);
 
@@ -279,6 +393,7 @@ function editarPropietario(id) {
     document.getElementById('propietario-telefono').value = propietario.telefono || '';
     document.getElementById('propietario-email').value = propietario.correo_electronico || '';
     document.getElementById('propietario-direccion').value = propietario.direccion || '';
+    limpiarErroresPropietario();
         const eliminarBtn = document.getElementById('btn-eliminar-propietario');
         if (eliminarBtn) {
             eliminarBtn.style.display = 'inline-flex';

@@ -2,6 +2,7 @@
 @section('page-title', 'Gestión de Propietarios')
 @push('styles')
   <link rel="stylesheet" href="{{ asset('css/recepcion/propietarios.css') }}">
+  <link rel="stylesheet" href="{{ asset('css/recepcion/form-validation.css') }}">
 @endpush
 @section('content')
 <section id="mod-propietarios" class="module active">
@@ -103,33 +104,74 @@
         <button class="modal-close" onclick="cerrarModalPropietario()">&times;</button>
       </div>
       <div class="modal-body">
-        <form id="form-propietario" method="POST" action="{{ route('propietarios.store') }}">
+        <form id="form-propietario" method="POST" action="{{ route('propietarios.store') }}" novalidate>
           @csrf
           <input type="hidden" id="propietario-id" name="id_propietario">
           <div class="form-row">
             <div class="form-group">
               <label for="propietario-nombre">Nombre completo *</label>
-              <input type="text" id="propietario-nombre" name="nombre" class="form-control" required  maxlength="30"
-    oninput="this.value=this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g,'')">
+              <input
+                type="text"
+                id="propietario-nombre"
+                name="nombre"
+                class="form-control"
+                minlength="2"
+                maxlength="30"
+                pattern="^[A-Za-zÁÉÍÓÚáéíóúÑñÜü][A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]{1,29}$"
+                title="Solo letras y espacios (mín. 2 caracteres, máx. 30)."
+                placeholder="Ej: María Rodríguez"
+                required>
+              <small class="field-hint">Solo letras y espacios.</small>
+              <small class="field-error" id="error-propietario-nombre"></small>
             </div>
             <div class="form-group">
-              <label for="propietario-telefono">Teléfono</label>
-              <input type="tel" id="propietario-telefono" name="telefono" class="form-control" required 
-    maxlength="10"
-    oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)">
+              <label for="propietario-telefono">Teléfono *</label>
+              <input
+                type="tel"
+                id="propietario-telefono"
+                name="telefono"
+                class="form-control"
+                inputmode="numeric"
+                maxlength="10"
+                minlength="10"
+                pattern="^[0-9]{10}$"
+                title="10 dígitos numéricos."
+                placeholder="5512345678"
+                required>
+              <small class="field-hint">Exactamente 10 dígitos.</small>
+              <small class="field-error" id="error-propietario-telefono"></small>
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label for="propietario-email">Email</label>
-              <input type="email" id="propietario-email" name="correo_electronico" class="form-control"  required maxlength="255"
-    placeholder="ejemplo@correo.com">
-
+              <label for="propietario-email">Correo electrónico *</label>
+              <input
+                type="email"
+                id="propietario-email"
+                name="correo_electronico"
+                class="form-control"
+                maxlength="255"
+                inputmode="email"
+                autocomplete="email"
+                placeholder="nombre@correo.com"
+                required>
+              <small class="field-hint">Formato de correo electrónico válido.</small>
+              <small class="field-error" id="error-propietario-email"></small>
             </div>
             <div class="form-group">
-              <label for="propietario-direccion">Dirección</label>
-              <textarea id="propietario-direccion" name="direccion" class="form-control" required rows="2"
-    maxlength="255"></textarea>
+              <label for="propietario-direccion">Dirección *</label>
+              <textarea
+                id="propietario-direccion"
+                name="direccion"
+                class="form-control"
+                rows="2"
+                minlength="10"
+                maxlength="255"
+                title="Mínimo 10 caracteres."
+                placeholder="Calle, número, colonia, ciudad..."
+                required></textarea>
+              <small class="field-hint">Mínimo 10 caracteres.</small>
+              <small class="field-error" id="error-propietario-direccion"></small>
             </div>
           </div>
           <div class="form-row">
@@ -243,5 +285,6 @@
 </div>
 </section>
 
+<script src="{{ asset('js/recepcion/form-validation.js') }}"></script>
 <script src="{{ asset('js/recepcion/propietarios.js') }}"></script>
 @endsection
