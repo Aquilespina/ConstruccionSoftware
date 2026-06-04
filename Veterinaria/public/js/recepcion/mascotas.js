@@ -593,21 +593,39 @@ async function cargarPropietarios() {
     }
 }
 
+function poblarEspeciesSelect() {
+    const especieSelect = document.getElementById('mascota-especie');
+    if (!especieSelect) return;
+
+    if (especieSelect.options.length <= 1) {
+        const especies = window.ESPECIES_DISPONIBLES || ['perro', 'gato', 'ave', 'roedor', 'reptil'];
+        especies.forEach(esp => {
+            const opt = document.createElement('option');
+            opt.value = esp;
+            opt.textContent = esp.charAt(0).toUpperCase() + esp.slice(1);
+            especieSelect.appendChild(opt);
+        });
+    }
+}
+
 async function abrirModalMascota() {
     const modal = document.getElementById('modal-mascota');
     if (modal) {
         console.log('Abriendo modal de mascota...');
         modal.style.display = 'flex';
-        
+
+        poblarEspeciesSelect();
+
         // Cargar propietarios cuando se abre el modal
         await cargarPropietarios();
-        
+
         // Restablecer el formulario si es nuevo
         const titulo = document.getElementById('modal-mascota-titulo');
         if (titulo && titulo.textContent === 'Nueva Mascota') {
             const form = document.getElementById('form-mascota');
             if (form) {
                 form.reset();
+                poblarEspeciesSelect();
                 delete form.dataset.mascotaId;
                 limpiarErroresMascota();
                 document.getElementById('mascota-estado').value = '1';

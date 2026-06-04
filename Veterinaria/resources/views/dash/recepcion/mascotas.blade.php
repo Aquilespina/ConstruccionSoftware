@@ -290,6 +290,10 @@
   </div>
 </section>
 
+@php $especiesJs = $especies ?? ['perro', 'gato', 'ave', 'roedor', 'reptil']; @endphp
+<script>
+  window.ESPECIES_DISPONIBLES = @json($especiesJs);
+</script>
 <script src="{{ asset('js/recepcion/form-validation.js') }}"></script>
 <script src="{{ asset('js/recepcion/mascotas.js') }}"></script>
 

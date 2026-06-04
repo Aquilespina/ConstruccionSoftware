@@ -67,12 +67,19 @@
         [
             'cita-mascota', 'cita-medico', 'cita-fecha', 'cita-horario',
             'cita-tipo_cita', 'cita-estado', 'cita-tipo_servicio',
+            'cita-tarifa', 'cita-peso',
         ].forEach(limpiarErrorCampo);
     }
 
     function horaActualHHMM() {
         const now = new Date();
         return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    }
+
+    // Fecha de hoy en el timezone del navegador (evita desfase UTC del servidor)
+    function todayString() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
 
     function validarFormularioCita() {
@@ -101,16 +108,37 @@
         const fechaInput = document.getElementById('cita-fecha');
         const horarioInput = document.getElementById('cita-horario');
         const citaId = document.getElementById('cita-id')?.value;
+        const hoy = todayString();
 
         if (fechaInput?.value && !citaId) {
-            if (fechaInput.value < (config.hoy || '')) {
+            if (fechaInput.value < hoy) {
                 mostrarErrorCampo('cita-fecha', 'No puede programar citas en fechas pasadas.');
                 valido = false;
-            } else if (fechaInput.value === config.hoy && horarioInput?.value) {
+            } else if (fechaInput.value === hoy && horarioInput?.value) {
                 if (horarioInput.value <= horaActualHHMM()) {
                     mostrarErrorCampo('cita-horario', 'La hora debe ser posterior a la hora actual.');
                     valido = false;
                 }
+            }
+        }
+
+        const tarifaInput = document.getElementById('cita-tarifa');
+        if (tarifaInput?.value !== '' && tarifaInput?.value !== null) {
+            if (parseFloat(tarifaInput.value) < 0) {
+                mostrarErrorCampo('cita-tarifa', 'La tarifa no puede ser negativa.');
+                valido = false;
+            } else {
+                limpiarErrorCampo('cita-tarifa');
+            }
+        }
+
+        const pesoInput = document.getElementById('cita-peso');
+        if (pesoInput?.value !== '' && pesoInput?.value !== null) {
+            if (parseFloat(pesoInput.value) < 0) {
+                mostrarErrorCampo('cita-peso', 'El peso no puede ser negativo.');
+                valido = false;
+            } else {
+                limpiarErrorCampo('cita-peso');
             }
         }
 
@@ -123,7 +151,7 @@
         const citaId = document.getElementById('cita-id')?.value;
         if (!fechaInput || !horarioInput || citaId) return;
 
-        if (fechaInput.value === config.hoy) {
+        if (fechaInput.value === todayString()) {
             const now = new Date();
             const hh = String(now.getHours()).padStart(2, '0');
             const mm = String(now.getMinutes()).padStart(2, '0');
@@ -166,13 +194,28 @@
         document.getElementById('filter-medico')?.addEventListener('change', filtrarCitas);
 
         const fechaInput = document.getElementById('cita-fecha');
-        if (fechaInput && config.hoy) {
-            if (!fechaInput.value) {
-                fechaInput.value = config.hoy;
-            }
-            fechaInput.min = config.hoy;
+        if (fechaInput) {
+            const hoy = todayString();
+            if (!fechaInput.value) fechaInput.value = hoy;
+            fechaInput.min = hoy;
             fechaInput.addEventListener('change', actualizarMinHorario);
         }
+
+        // Validación inline en tiempo real para tarifa y peso
+        document.getElementById('cita-tarifa')?.addEventListener('input', function () {
+            if (this.value !== '' && parseFloat(this.value) < 0) {
+                mostrarErrorCampo('cita-tarifa', 'La tarifa no puede ser negativa.');
+            } else {
+                limpiarErrorCampo('cita-tarifa');
+            }
+        });
+        document.getElementById('cita-peso')?.addEventListener('input', function () {
+            if (this.value !== '' && parseFloat(this.value) < 0) {
+                mostrarErrorCampo('cita-peso', 'El peso no puede ser negativo.');
+            } else {
+                limpiarErrorCampo('cita-peso');
+            }
+        });
 
         setupModalCitas();
         setupModalCalendario();
@@ -232,9 +275,10 @@
         limpiarErroresCita();
 
         const fechaInput = document.getElementById('cita-fecha');
-        if (fechaInput && config.hoy) {
-            fechaInput.value = config.hoy;
-            fechaInput.min = config.hoy;
+        if (fechaInput) {
+            const hoy = todayString();
+            fechaInput.value = hoy;
+            fechaInput.min = hoy;
         }
 
         actualizarMinHorario();

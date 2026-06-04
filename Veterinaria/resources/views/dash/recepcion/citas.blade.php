@@ -276,7 +276,7 @@
                             <div class="form-group">
                                 <label for="cita-fecha">Fecha *</label>
                                 <input type="date" id="cita-fecha" name="fecha" class="form-control" required>
-                                <small class="field-hint">No se permiten fechas pasadas en citas nuevas.</small>
+                                <small class="field-hint">Puedes agendar citas para hoy o fechas futuras.</small>
                                 <small class="field-error" id="error-cita-fecha"></small>
                             </div>
                             <div class="form-group">
@@ -324,11 +324,13 @@
                             </div>
                             <div class="form-group">
                                 <label for="cita-tarifa">Tarifa</label>
-                                <input type="number" step="0.01" id="cita-tarifa" name="tarifa" class="form-control" placeholder="0.00">
+                                <input type="number" step="0.01" min="0" id="cita-tarifa" name="tarifa" class="form-control" placeholder="0.00">
+                                <small class="field-error" id="error-cita-tarifa"></small>
                             </div>
                             <div class="form-group">
                                 <label for="cita-peso">Peso de la mascota (kg)</label>
-                                <input type="number" step="0.01" id="cita-peso" name="peso_mascota" class="form-control" placeholder="0.00">
+                                <input type="number" step="0.01" min="0" id="cita-peso" name="peso_mascota" class="form-control" placeholder="0.00">
+                                <small class="field-error" id="error-cita-peso"></small>
                             </div>
                         </div>
                         <div class="form-group">
@@ -421,9 +423,13 @@
             </div>
             <div class="modal-body">
                 <div class="calendario-toolbar">
-                    <button type="button" class="btn-icon" id="btn-calendario-anterior" aria-label="Mes anterior">&lsaquo;</button>
+                    <button type="button" class="btn-icon" id="btn-calendario-anterior" aria-label="Mes anterior">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </button>
                     <h4 id="calendario-mes-titulo" class="calendario-mes-titulo">—</h4>
-                    <button type="button" class="btn-icon" id="btn-calendario-siguiente" aria-label="Mes siguiente">&rsaquo;</button>
+                    <button type="button" class="btn-icon" id="btn-calendario-siguiente" aria-label="Mes siguiente">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
                 </div>
                 <div id="calendario-grid" class="calendario-grid"></div>
                 <div id="calendario-dia-detalle" class="calendario-dia-detalle" style="display: none;">
