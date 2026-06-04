@@ -218,15 +218,10 @@ class RecetasManager {
             <td>${this.formatearFecha(receta.fecha_vencimiento)}</td>
             <td><span class="status-badge ${estadoClass}">${estadoText}</span></td>
             <td>
-                <div class="btn-actions">
-                    <button class="btn-icon view" onclick="recetasManager.verReceta(${receta.id})" title="Ver receta">
-                        👁
-                    </button>
-                    <button class="btn-icon print" onclick="recetasManager.imprimirReceta(${receta.id})" title="Imprimir">
-                        🖨
-                    </button>
-                    ${receta.estado === 'expirada' ? 
-                        `<button class="btn-icon renew" onclick="recetasManager.renovarReceta(${receta.id})" title="Renovar">🔄</button>` : 
+                <div style="display:flex;gap:0.5rem;align-items:center;">
+                    <button class="receta-btn-ver" onclick="recetasManager.verReceta(${receta.id})">Ver</button>
+                    ${receta.estado === 'expirada' ?
+                        `<button class="receta-btn-renovar" onclick="recetasManager.renovarReceta(${receta.id})">Renovar</button>` :
                         ''
                     }
                 </div>
@@ -236,10 +231,10 @@ class RecetasManager {
 
     getClassEstado(estado) {
         const estados = {
-            'activa': 'status-active',
-            'expirada': 'status-expired',
+            'activa':     'status-active',
+            'expirada':   'status-expired',
             'completada': 'status-completed',
-            'cancelada': 'status-expired'
+            'cancelada':  'status-cancelled',
         };
         return estados[estado] || 'status-pending';
     }

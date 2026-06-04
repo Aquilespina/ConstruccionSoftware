@@ -26,56 +26,99 @@
   gap: 12px;
 }
 
-/* Botones base */
-.btn-primary, .btn-secondary, .btn-outline {
-  padding: 12px 20px;
+/* ── Botones (homologados con profesionales/mascotas) ───────────────── */
+#mod-recetas .btn-primary {
+  background-color: var(--primary, #059669);
+  color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  border-radius: 0.5rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+#mod-recetas .btn-primary:hover {
+  background-color: var(--primary-dark, #047857);
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15);
 }
 
-.btn-primary {
-  background: #4f46e5;
-  color: white;
-  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
+#mod-recetas .btn-secondary {
+  background-color: white;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+#mod-recetas .btn-secondary:hover {
+  background-color: #f9fafb;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-.btn-primary:hover {
-  background: #4338ca;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(79, 70, 229, 0.4);
-}
-
-.btn-secondary {
-  background: #6b7280;
-  color: white;
-}
-
-.btn-secondary:hover {
-  background: #4b5563;
-  transform: translateY(-1px);
-}
-
-.btn-outline {
-  background: transparent;
-  color: #4f46e5;
-  border: 2px solid #4f46e5;
-}
-
-.btn-outline:hover {
-  background: #4f46e5;
-  color: white;
-}
-
-.btn-sm {
-  padding: 8px 16px;
+#mod-recetas .btn-outline {
+  background-color: transparent;
+  color: var(--primary, #059669);
+  border: 1px solid var(--primary, #059669);
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.75rem;
   font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+#mod-recetas .btn-outline:hover {
+  background-color: var(--primary, #059669);
+  color: white;
+}
+
+#mod-recetas .btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+/* ── Botones de acción en la tabla ──────────────────────────────────── */
+.receta-btn-ver {
+  padding: 0.3rem 0.875rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 0.375rem;
+  border: 1px solid var(--primary, #059669);
+  background: transparent;
+  color: var(--primary, #059669);
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  white-space: nowrap;
+}
+.receta-btn-ver:hover {
+  background-color: var(--primary, #059669);
+  color: white;
+}
+
+.receta-btn-renovar {
+  padding: 0.3rem 0.875rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 0.375rem;
+  border: 1px solid #f59e0b;
+  background: #fef3c7;
+  color: #92400e;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  white-space: nowrap;
+}
+.receta-btn-renovar:hover {
+  background-color: #f59e0b;
+  color: white;
 }
 
 /* Barra de filtros */
@@ -116,8 +159,8 @@
 
 .search-input:focus {
   outline: none;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  border-color: var(--primary, #059669);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
 }
 
 .filter-actions {
@@ -138,7 +181,7 @@
 
 .filter-select:focus {
   outline: none;
-  border-color: #4f46e5;
+  border-color: var(--primary, #059669);
 }
 
 /* Estadísticas */
@@ -151,20 +194,26 @@
 
 .stat-card {
   background: white;
-  padding: 24px;
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  padding: 20px 24px;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  border: 1px solid #e5e7eb;
   display: flex;
   align-items: center;
   gap: 16px;
-  border-left: 5px solid #4f46e5;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-left: 4px solid var(--primary, #059669);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
+
+.stat-card.stat-primary { border-left-color: var(--primary, #059669); }
+.stat-card.stat-success  { border-left-color: #10b981; }
+.stat-card.stat-warning  { border-left-color: #f59e0b; }
+.stat-card.stat-danger   { border-left-color: #ef4444; }
 
 .stat-icon {
   width: 56px;
@@ -176,7 +225,7 @@
   font-size: 1.75rem;
 }
 
-.stat-icon.primary { background: #eef2ff; color: #4f46e5; }
+.stat-icon.primary { background: #eef2ff; color: var(--primary, #059669); }
 .stat-icon.success { background: #f0fdf4; color: #10b981; }
 .stat-icon.warning { background: #fffbeb; color: #f59e0b; }
 .stat-icon.danger { background: #fef2f2; color: #ef4444; }
@@ -255,8 +304,8 @@
   align-items: center;
   justify-content: center;
   font-size: 1.25rem;
-  color: #4f46e5;
-  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.2);
+  color: var(--primary, #059669);
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.2);
 }
 
 .receta-info h4 {
@@ -285,29 +334,11 @@
   min-width: 80px;
 }
 
-.status-active { 
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
-  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
-}
-
-.status-pending { 
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: white;
-  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
-}
-
-.status-expired { 
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  color: white;
-  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
-}
-
-.status-completed { 
-  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-  color: white;
-  box-shadow: 0 2px 6px rgba(14, 165, 233, 0.3);
-}
+.status-active    { background: #d1fae5; color: #047857; }
+.status-pending   { background: #fef3c7; color: #92400e; }
+.status-expired   { background: #fee2e2; color: #991b1b; }
+.status-completed { background: #dbeafe; color: #1e40af; }
+.status-cancelled { background: #f3f4f6; color: #374151; }
 
 /* Botones de acción */
 .btn-actions {
@@ -333,7 +364,7 @@
 
 .btn-icon.view { 
   background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-  color: #4f46e5;
+  color: var(--primary, #059669);
 }
 
 .btn-icon.print { 
@@ -505,8 +536,8 @@
 
 .form-control:focus {
   outline: none;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+  border-color: var(--primary, #059669);
+  box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.1);
   transform: translateY(-1px);
 }
 
@@ -520,7 +551,7 @@
   padding: 20px;
   border-radius: 12px;
   margin-top: 16px;
-  border-left: 5px solid #4f46e5;
+  border-left: 5px solid var(--primary, #059669);
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
@@ -572,7 +603,7 @@
 }
 
 .medicamento-item:hover {
-  border-color: #4f46e5;
+  border-color: var(--primary, #059669);
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
@@ -661,16 +692,16 @@
 }
 
 .pagination button.active {
-  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  background: linear-gradient(135deg, var(--primary, #059669) 0%, #6366f1 100%);
   color: white;
-  border-color: #4f46e5;
-  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
+  border-color: var(--primary, #059669);
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
 }
 
 .pagination button:hover:not(.active) {
   background: #f8fafc;
-  border-color: #4f46e5;
-  color: #4f46e5;
+  border-color: var(--primary, #059669);
+  color: var(--primary, #059669);
 }
 
 /* Utilidades */

@@ -8,7 +8,10 @@
   <div class="module-header">
     <h2 class="module-title">Historial Médico</h2>
     <div class="module-actions">
-      <button class="btn-primary" id="btn-nueva-mascota">Nueva Mascota</button>
+      <a href="{{ route('mascotas.index') }}" class="btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; gap:0.5rem;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        Nueva Mascota
+      </a>
     </div>
   </div>
 
@@ -88,70 +91,6 @@
 
     <div id="mascotas-sin-resultados" style="display:none;grid-column:1/-1;padding:32px;text-align:center;color:#6b7280;">
       No hay mascotas que coincidan con la búsqueda.
-    </div>
-  </div>
-
-  <!-- Modal nueva mascota -->
-  <div id="modal-mascota" class="modal" style="display:none;">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Nueva Mascota</h3>
-        <button class="modal-close" onclick="cerrarModalMascota()">&times;</button>
-      </div>
-      <div class="modal-body">
-        <form id="form-mascota">
-          @csrf
-          <div class="form-row">
-            <div class="form-group">
-              <label for="mascota-nombre">Nombre *</label>
-              <input type="text" id="mascota-nombre" name="nombre" class="form-control" required>
-            </div>
-            <div class="form-group">
-              <label for="mascota-especie">Especie *</label>
-              <select id="mascota-especie" name="especie" class="form-control" required>
-                <option value="">Seleccionar</option>
-                <option value="perro">Perro</option>
-                <option value="gato">Gato</option>
-                <option value="ave">Ave</option>
-                <option value="roedor">Roedor</option>
-                <option value="otro">Otro</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="mascota-raza">Raza</label>
-              <input type="text" id="mascota-raza" name="raza" class="form-control">
-            </div>
-            <div class="form-group">
-              <label for="mascota-edad">Edad (años)</label>
-              <input type="number" id="mascota-edad" name="edad" class="form-control" min="0" max="50">
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="mascota-propietario">Propietario *</label>
-            <select id="mascota-propietario" name="id_propietario" class="form-control" required>
-              <option value="">Cargando propietarios...</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="mascota-alergias">Alergias conocidas</label>
-            <textarea id="mascota-alergias" name="alergias" class="form-control" rows="2"
-                      placeholder="Ej: Penicilina, picadura de abeja..."></textarea>
-          </div>
-          <div class="form-group">
-            <label for="mascota-notas">Notas adicionales</label>
-            <textarea id="mascota-notas" name="notas" class="form-control" rows="2"
-                      placeholder="Observaciones adicionales..."></textarea>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn-secondary" onclick="cerrarModalMascota()">Cancelar</button>
-        <button type="button" class="btn-primary" id="btn-guardar-mascota" onclick="guardarMascota()">
-          Guardar Mascota
-        </button>
-      </div>
     </div>
   </div>
 

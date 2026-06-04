@@ -9,10 +9,12 @@
     <h2 class="module-title">Gestión de Recetas</h2>
     <div class="module-actions">
       <button class="btn-primary" id="btn-nueva-receta">
-        <i class="icon-plus"></i> Nueva Receta
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        Nueva Receta
       </button>
       <button class="btn-secondary" id="btn-exportar-recetas">
-        <i class="icon-download"></i> Exportar
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Exportar
       </button>
     </div>
   </div>
@@ -42,37 +44,29 @@
 
   <!-- Estadísticas rápidas -->
   <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-icon primary">
-        <i class="icon-prescription">💊</i>
-      </div>
+    <div class="stat-card stat-primary">
+      <div class="stat-icon primary">💊</div>
       <div class="stat-info">
         <span class="stat-value" id="total-recetas">0</span>
         <span class="stat-label">Total Recetas</span>
       </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon success">
-        <i class="icon-check">✅</i>
-      </div>
+    <div class="stat-card stat-success">
+      <div class="stat-icon success">✅</div>
       <div class="stat-info">
         <span class="stat-value" id="recetas-activas">0</span>
         <span class="stat-label">Activas</span>
       </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon warning">
-        <i class="icon-clock">⏰</i>
-      </div>
+    <div class="stat-card stat-warning">
+      <div class="stat-icon warning">⏰</div>
       <div class="stat-info">
         <span class="stat-value" id="recetas-expiradas">0</span>
         <span class="stat-label">Por Expirar</span>
       </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon danger">
-        <i class="icon-expired">❌</i>
-      </div>
+    <div class="stat-card stat-danger">
+      <div class="stat-icon danger">❌</div>
       <div class="stat-info">
         <span class="stat-value" id="recetas-vencidas">0</span>
         <span class="stat-label">Expiradas</span>
@@ -129,7 +123,7 @@
           
           <div class="form-section">
             <h4 class="section-title">
-              <i class="icon-info">📋</i> Información General
+              📋 Información General
             </h4>
             <div class="form-row">
               <div class="form-group">
@@ -137,8 +131,11 @@
                 <select id="receta-paciente" name="mascota_id" class="form-control" required onchange="recetasManager.cargarDatosMascota()">
                   <option value="">Seleccionar paciente</option>
                   @foreach($mascotas as $mascota)
-                    <option value="{{ $mascota->id }}" data-propietario="{{ $mascota->propietario->nombre }}" data-especie="{{ $mascota->especie }}">
-                      {{ $mascota->nombre }} - {{ $mascota->propietario->nombre }}
+                    @php $propNombre = optional($mascota->propietario)->nombre ?? 'Sin propietario'; @endphp
+                    <option value="{{ $mascota->id }}"
+                            data-propietario="{{ $propNombre }}"
+                            data-especie="{{ $mascota->especie ?? '' }}">
+                      {{ $mascota->nombre }}{{ $mascota->propietario ? ' - ' . $propNombre : '' }}
                     </option>
                   @endforeach
                 </select>
@@ -148,7 +145,9 @@
                 <select id="receta-medico" name="medico_id" class="form-control" required>
                   <option value="">Seleccionar médico</option>
                   @foreach($medicos as $medico)
-                    <option value="{{ $medico->id }}">{{ $medico->nombre }} - {{ $medico->especialidad }}</option>
+                    <option value="{{ $medico->id }}">
+                      {{ $medico->nombre }}{{ $medico->especialidad ? ' - ' . $medico->especialidad : '' }}
+                    </option>
                   @endforeach
                 </select>
               </div>
@@ -178,7 +177,7 @@
 
           <div class="form-section">
             <h4 class="section-title">
-              <i class="icon-diagnosis">🩺</i> Diagnóstico y Tratamiento
+              🩺 Diagnóstico y Tratamiento
             </h4>
             <div class="form-group">
               <label for="receta-diagnostico">Diagnóstico Principal *</label>
@@ -199,10 +198,10 @@
           <div class="form-section">
             <div class="section-header">
               <h4 class="section-title">
-                <i class="icon-meds">💊</i> Medicamentos
+                💊 Medicamentos
               </h4>
               <button type="button" class="btn-outline btn-sm" onclick="recetasManager.agregarMedicamento()">
-                <i class="icon-plus">+</i> Agregar Medicamento
+                + Agregar Medicamento
               </button>
             </div>
             <div id="lista-medicamentos" class="medicamentos-container">
@@ -212,7 +211,7 @@
 
           <div class="form-section">
             <h4 class="section-title">
-              <i class="icon-instructions">📝</i> Instrucciones y Observaciones
+              📝 Instrucciones y Observaciones
             </h4>
             <div class="form-group">
               <label for="receta-instrucciones">Instrucciones de uso *</label>
@@ -228,7 +227,7 @@
       <div class="modal-footer">
         <button type="button" class="btn-secondary" onclick="recetasManager.cerrarModalReceta()">Cancelar</button>
         <button type="button" class="btn-primary" id="btn-guardar-receta" onclick="recetasManager.guardarReceta()">
-          <i class="icon-save">💾</i> Guardar Receta
+          Guardar Receta
         </button>
       </div>
     </div>
@@ -249,10 +248,10 @@
       <div class="modal-footer">
         <button type="button" class="btn-secondary" onclick="recetasManager.cerrarModalVerReceta()">Cerrar</button>
         <button type="button" class="btn-primary" onclick="recetasManager.imprimirReceta()">
-          <i class="icon-print">🖨</i> Imprimir
+          Imprimir
         </button>
         <button type="button" class="btn-outline" id="btn-renovar-receta" onclick="recetasManager.renovarReceta()" style="display: none;">
-          <i class="icon-renew">🔄</i> Renovar
+          Renovar
         </button>
       </div>
     </div>

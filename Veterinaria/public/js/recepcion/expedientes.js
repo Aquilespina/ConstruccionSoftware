@@ -18,14 +18,10 @@
     init();
 
     function init() {
-        document.getElementById('btn-nueva-mascota')?.addEventListener('click', abrirModalMascota);
         document.getElementById('search-mascotas')?.addEventListener('input', aplicarFiltros);
         document.getElementById('filter-especie')?.addEventListener('change', aplicarFiltros);
         document.getElementById('filter-estado')?.addEventListener('change', aplicarFiltros);
 
-        document.getElementById('modal-mascota')?.addEventListener('click', (e) => {
-            if (e.target === e.currentTarget) cerrarModalMascota();
-        });
         document.getElementById('modal-historial')?.addEventListener('click', (e) => {
             if (e.target === e.currentTarget) cerrarModalHistorial();
         });
@@ -58,81 +54,6 @@
         const sinRes = document.getElementById('mascotas-sin-resultados');
         if (sinRes) {
             sinRes.style.display = (cards.length > 0 && visibles === 0) ? 'block' : 'none';
-        }
-    }
-
-    // ─── Modal nueva mascota ─────────────────────────────────────────────────
-    function abrirModalMascota() {
-        document.getElementById('form-mascota')?.reset();
-        cargarPropietarios();
-        document.getElementById('modal-mascota').style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-    }
-
-    function cerrarModalMascota() {
-        document.getElementById('modal-mascota').style.display = 'none';
-        document.body.style.overflow = '';
-    }
-
-    async function cargarPropietarios() {
-        const select = document.getElementById('mascota-propietario');
-        if (!select) return;
-        select.innerHTML = '<option value="">Cargando...</option>';
-        try {
-            const resp = await fetch('/api/propietarios', { headers: fetchHeaders() });
-            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-            const lista = await resp.json();
-            const arr = Array.isArray(lista) ? lista : (lista.data ?? []);
-            select.innerHTML = '<option value="">Seleccionar propietario</option>';
-            arr.forEach((p) => {
-                const opt = document.createElement('option');
-                opt.value = p.id_propietario ?? p.id;
-                opt.textContent = p.nombre;
-                select.appendChild(opt);
-            });
-        } catch {
-            select.innerHTML = '<option value="">No se pudieron cargar</option>';
-        }
-    }
-
-    async function guardarMascota() {
-        const form = document.getElementById('form-mascota');
-        const btn  = document.getElementById('btn-guardar-mascota');
-        if (!form) return;
-
-        const datos = {
-            nombre:         form.querySelector('[name=nombre]')?.value.trim(),
-            especie:        form.querySelector('[name=especie]')?.value,
-            raza:           form.querySelector('[name=raza]')?.value.trim() || null,
-            edad:           form.querySelector('[name=edad]')?.value || null,
-            id_propietario: form.querySelector('[name=id_propietario]')?.value,
-            alergias:       form.querySelector('[name=alergias]')?.value.trim() || null,
-            notas:          form.querySelector('[name=notas]')?.value.trim() || null,
-        };
-
-        if (!datos.nombre || !datos.especie || !datos.id_propietario) {
-            alert('Complete los campos obligatorios: Nombre, Especie y Propietario.');
-            return;
-        }
-
-        btn.disabled = true;
-        btn.textContent = 'Guardando...';
-        try {
-            const resp = await fetch('/api/mascotas', {
-                method: 'POST',
-                headers: fetchHeaders({ 'Content-Type': 'application/json' }),
-                body: JSON.stringify(datos),
-            });
-            const res = await resp.json();
-            if (!resp.ok) throw new Error(res.message || `Error ${resp.status}`);
-            alert(res.message || 'Mascota registrada correctamente.');
-            cerrarModalMascota();
-            setTimeout(() => location.reload(), 500);
-        } catch (e) {
-            alert('Error al guardar: ' + e.message);
-        } finally {
-            btn.disabled = false;
-            btn.textContent = 'Guardar Mascota';
         }
     }
 
@@ -297,7 +218,4 @@
     // ─── Exports globales ────────────────────────────────────────────────────
     window.verHistorial         = verHistorial;
     window.cerrarModalHistorial = cerrarModalHistorial;
-    window.abrirModalMascota    = abrirModalMascota;
-    window.cerrarModalMascota   = cerrarModalMascota;
-    window.guardarMascota       = guardarMascota;
 })();

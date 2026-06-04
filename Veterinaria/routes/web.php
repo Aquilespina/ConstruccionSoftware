@@ -38,6 +38,40 @@ if (env('DB_PING', false)) {
     });
 }
 
+// ─── Setup inicial: crea el usuario recepcionista ───────────────────────────
+// Visita /setup/vetclinic2024 para generar el usuario.
+// ELIMINA esta ruta del hosting una vez creado el usuario.
+Route::get('/setup/{token}', function (string $token) {
+    if ($token !== 'vetclinic2024') {
+        abort(403);
+    }
+
+    $existe = \App\Models\User::where('correo_electronico', 'recep@vet.com')->first();
+
+    if ($existe) {
+        return response('<h2 style="font-family:sans-serif;color:#059669">&#10003; El usuario ya existe.<br><br>
+            <b>Correo:</b> recep@vet.com<br>
+            <b>Usuario:</b> Recepción<br>
+            <small style="color:#6b7280">Inicia sesión con tu contraseña.</small></h2>', 200);
+    }
+
+    \App\Models\User::create([
+        'correo_electronico' => 'recep@vet.com',
+        'nombre_usuario'     => 'Recepción',
+        'password'           => \Illuminate\Support\Facades\Hash::make('recep123'),
+        'tipo_permiso'       => 'recepcionista',
+        'estado'             => 'activo',
+    ]);
+
+    return response('<h2 style="font-family:sans-serif;color:#059669">&#10003; Usuario creado correctamente.<br><br>
+        <b>Correo:</b> recep@vet.com<br>
+        <b>Usuario:</b> Recepción<br>
+        <b>Contraseña:</b> recep123<br>
+        <b>Rol:</b> recepcionista<br><br>
+        <b style="color:#dc2626">&#9888; Elimina esta ruta del hosting después de usarla.</b></h2>', 201);
+})->name('setup');
+// ────────────────────────────────────────────────────────────────────────────
+
 // Dashboards por rol
 Route::middleware(['auth', 'role:administrador'])->group(function () {
     Route::get('/admin', function () {
