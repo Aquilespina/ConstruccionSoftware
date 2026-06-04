@@ -1,217 +1,303 @@
-// Funciones para el módulo de Expedientes
-document.addEventListener('DOMContentLoaded', function() {
-    inicializarExpedientes();
-});
+/**
+ * Módulo de Historial Médico
+ */
+(function () {
+    const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
-function inicializarExpedientes() {
-    // Event listeners
-    document.getElementById('btn-nueva-mascota').addEventListener('click', abrirModalMascota);
-    document.getElementById('btn-buscar-mascotas').addEventListener('click', aplicarFiltros);
-    document.getElementById('search-mascotas').addEventListener('input', aplicarFiltros);
-    document.getElementById('filter-especie').addEventListener('change', aplicarFiltros);
-    document.getElementById('filter-estado').addEventListener('change', aplicarFiltros);
-}
-
-function getStatusClass(status) {
-    const statusClasses = {
-        'al-dia': 'status-active',
-        'pendiente': 'status-pending',
-        'vencida': 'status-inactive'
-    };
-    return statusClasses[status] || '';
-}
-
-function getVacunaText(status) {
-    const statusTexts = {
-        'al-dia': 'Al día',
-        'pendiente': 'Pendiente',
-        'vencida': 'Vencida'
-    };
-    return statusTexts[status] || status;
-}
-
-// Funciones de modales
-function abrirModalMascota() {
-    document.getElementById('modal-mascota').style.display = 'flex';
-    cargarPropietarios();
-}
-
-function cerrarModalMascota() {
-    document.getElementById('modal-mascota').style.display = 'none';
-    document.getElementById('form-mascota').reset();
-}
-
-function abrirModalHistorial() {
-    document.getElementById('modal-historial').style.display = 'flex';
-}
-
-function cerrarModalHistorial() {
-    document.getElementById('modal-historial').style.display = 'none';
-}
-
-// Funciones de negocio
-function guardarMascota() {
-    const form = document.getElementById('form-mascota');
-    const formData = new FormData(form);
-    
-    // Validación básica
-    if (!formData.get('nombre') || !formData.get('especie') || !formData.get('propietario_id')) {
-        alert('Por favor complete todos los campos obligatorios');
-        return;
+    function fetchHeaders(extra = {}) {
+        return {
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': CSRF,
+            ...extra,
+        };
     }
-    
-    // Aquí iría la petición AJAX para guardar la mascota
-    console.log('Guardando mascota:', Object.fromEntries(formData));
-    
-    // Cerrar modal (la lista de expedientes es server-rendered)
-    cerrarModalMascota();
-}
 
-function verHistorial(mascotaId) {
-    // Cargar historial de la mascota
-    cargarHistorialMascota(mascotaId);
-    abrirModalHistorial();
-}
+    // ─── Init ─────────────────────────────────────────────────────────────────
+    // El script se carga al final del body: el DOM ya está listo
+    init();
 
-function abrirExpediente(mascotaId) {
-    // Por ahora redirige al módulo de mascotas; se puede ajustar a una ruta específica si existe
-    window.location.href = '/recepcion/mascotas';
-}
+    function init() {
+        document.getElementById('btn-nueva-mascota')?.addEventListener('click', abrirModalMascota);
+        document.getElementById('search-mascotas')?.addEventListener('input', aplicarFiltros);
+        document.getElementById('filter-especie')?.addEventListener('change', aplicarFiltros);
+        document.getElementById('filter-estado')?.addEventListener('change', aplicarFiltros);
 
-function aplicarFiltros() {
-    const termino = (document.getElementById('search-mascotas').value || '').toLowerCase();
-    const especie = (document.getElementById('filter-especie').value || '').toLowerCase();
-    // El filtro de estado se ignora por ahora (no hay un estado "activo/inactivo" en las filas)
-
-    // Filtrar tarjetas (diseño actual)
-    const cards = document.querySelectorAll('#mascotas-container .mascota-card');
-    cards.forEach(card => {
-        const name = (card.dataset.name || '');
-        const owner = (card.dataset.owner || '');
-        const rowEspecie = (card.dataset.especie || '');
-
-        const matchTermino = !termino || name.includes(termino) || owner.includes(termino);
-        const matchEspecie = !especie || rowEspecie === especie;
-
-        card.style.display = (matchTermino && matchEspecie) ? '' : 'none';
-    });
-
-    // Compatibilidad: si existe una tabla, filtrarla también
-    const filas = document.querySelectorAll('#expedientes-body tr');
-    if (filas.length) {
-        filas.forEach(fila => {
-            const name = (fila.dataset.name || '');
-            const owner = (fila.dataset.owner || '');
-            const rowEspecie = (fila.dataset.especie || '');
-
-            const matchTermino = !termino || name.includes(termino) || owner.includes(termino);
-            const matchEspecie = !especie || rowEspecie === especie;
-
-            fila.style.display = (matchTermino && matchEspecie) ? '' : 'none';
+        document.getElementById('modal-mascota')?.addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) cerrarModalMascota();
+        });
+        document.getElementById('modal-historial')?.addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) cerrarModalHistorial();
         });
     }
-}
 
-function cargarPropietarios() {
-    // Simulación de carga de propietarios
-    const select = document.getElementById('mascota-propietario');
-    select.innerHTML = '<option value="">Seleccionar propietario</option>';
-    
-    const propietarios = [
-        { id: 1, nombre: 'María Rodríguez' },
-        { id: 2, nombre: 'Carlos Pérez' },
-        { id: 3, nombre: 'Ana González' }
-    ];
-    
-    propietarios.forEach(prop => {
-        const option = document.createElement('option');
-        option.value = prop.id;
-        option.textContent = prop.nombre;
-        select.appendChild(option);
-    });
-}
+    // ─── Filtros ─────────────────────────────────────────────────────────────
+    function aplicarFiltros() {
+        const termino = (document.getElementById('search-mascotas')?.value || '').toLowerCase().trim();
+        const especie = (document.getElementById('filter-especie')?.value || '').toLowerCase();
+        const estado  = (document.getElementById('filter-estado')?.value || '').toLowerCase();
 
-async function cargarHistorialMascota(mascotaId) {
+        const cards = document.querySelectorAll('#mascotas-container .mascota-card');
+        let visibles = 0;
+
+        cards.forEach((card) => {
+            const name       = (card.dataset.name   || '').toLowerCase();
+            const owner      = (card.dataset.owner  || '').toLowerCase();
+            const cardEsp    = (card.dataset.especie || '').toLowerCase();
+            const cardEstado = (card.dataset.estado  || '').toLowerCase();
+
+            const ok =
+                (!termino || name.includes(termino) || owner.includes(termino)) &&
+                (!especie || cardEsp    === especie) &&
+                (!estado  || cardEstado === estado);
+
+            card.style.display = ok ? '' : 'none';
+            if (ok) visibles++;
+        });
+
+        const sinRes = document.getElementById('mascotas-sin-resultados');
+        if (sinRes) {
+            sinRes.style.display = (cards.length > 0 && visibles === 0) ? 'block' : 'none';
+        }
+    }
+
+    // ─── Modal nueva mascota ─────────────────────────────────────────────────
+    function abrirModalMascota() {
+        document.getElementById('form-mascota')?.reset();
+        cargarPropietarios();
+        document.getElementById('modal-mascota').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function cerrarModalMascota() {
+        document.getElementById('modal-mascota').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    async function cargarPropietarios() {
+        const select = document.getElementById('mascota-propietario');
+        if (!select) return;
+        select.innerHTML = '<option value="">Cargando...</option>';
+        try {
+            const resp = await fetch('/api/propietarios', { headers: fetchHeaders() });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const lista = await resp.json();
+            const arr = Array.isArray(lista) ? lista : (lista.data ?? []);
+            select.innerHTML = '<option value="">Seleccionar propietario</option>';
+            arr.forEach((p) => {
+                const opt = document.createElement('option');
+                opt.value = p.id_propietario ?? p.id;
+                opt.textContent = p.nombre;
+                select.appendChild(opt);
+            });
+        } catch {
+            select.innerHTML = '<option value="">No se pudieron cargar</option>';
+        }
+    }
+
+    async function guardarMascota() {
+        const form = document.getElementById('form-mascota');
+        const btn  = document.getElementById('btn-guardar-mascota');
+        if (!form) return;
+
+        const datos = {
+            nombre:         form.querySelector('[name=nombre]')?.value.trim(),
+            especie:        form.querySelector('[name=especie]')?.value,
+            raza:           form.querySelector('[name=raza]')?.value.trim() || null,
+            edad:           form.querySelector('[name=edad]')?.value || null,
+            id_propietario: form.querySelector('[name=id_propietario]')?.value,
+            alergias:       form.querySelector('[name=alergias]')?.value.trim() || null,
+            notas:          form.querySelector('[name=notas]')?.value.trim() || null,
+        };
+
+        if (!datos.nombre || !datos.especie || !datos.id_propietario) {
+            alert('Complete los campos obligatorios: Nombre, Especie y Propietario.');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Guardando...';
+        try {
+            const resp = await fetch('/api/mascotas', {
+                method: 'POST',
+                headers: fetchHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify(datos),
+            });
+            const res = await resp.json();
+            if (!resp.ok) throw new Error(res.message || `Error ${resp.status}`);
+            alert(res.message || 'Mascota registrada correctamente.');
+            cerrarModalMascota();
+            setTimeout(() => location.reload(), 500);
+        } catch (e) {
+            alert('Error al guardar: ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Guardar Mascota';
+        }
+    }
+
+    // ─── Modal historial ─────────────────────────────────────────────────────
+    function verHistorial(mascotaId, nombre) {
+        const modal = document.getElementById('modal-historial');
         const titulo = document.getElementById('historial-titulo');
-        const contenido = document.querySelector('.historial-content');
-        titulo.textContent = `Historial Médico - Mascota #${mascotaId}`;
-        contenido.innerHTML = `<div style="text-align:center;padding:16px;color:#6b7280">Cargando historial...</div>`;
+        const body   = document.getElementById('historial-body');
+        if (!modal) return;
+
+        titulo.textContent = `Historial — ${nombre || 'Mascota'}`;
+
+        const ficha  = document.getElementById('historial-ficha');
+        const scroll = document.getElementById('historial-scroll');
+        if (ficha)  { ficha.style.display = 'none'; ficha.innerHTML = ''; }
+        if (scroll) { scroll.innerHTML = '<div class="h-vacio">Cargando historial...</div>'; }
+
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+
+        cargarHistorial(mascotaId);
+    }
+
+    function cerrarModalHistorial() {
+        document.getElementById('modal-historial').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    async function cargarHistorial(mascotaId) {
+        const ficha  = document.getElementById('historial-ficha');
+        const scroll = document.getElementById('historial-scroll');
+        const titulo = document.getElementById('historial-titulo');
 
         try {
-                const resp = await fetch(`/api/recetas?mascota_id=${encodeURIComponent(mascotaId)}&per_page=100`, {
-                        headers: { 'Accept': 'application/json' }
-                });
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                const data = await resp.json();
-                const recetas = Array.isArray(data.data) ? data.data : [];
+            const resp = await fetch(
+                `/api/expedientes/${encodeURIComponent(mascotaId)}/historial`,
+                { headers: fetchHeaders() }
+            );
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const { mascota, timeline } = await resp.json();
 
-                // Si hay al menos una receta, usa sus datos para encabezar
-                let mascotaNombre = `Mascota #${mascotaId}`;
-                let propietarioNombre = '';
-                if (recetas.length > 0) {
-                        mascotaNombre = recetas[0]?.mascota?.nombre || mascotaNombre;
-                        propietarioNombre = recetas[0]?.mascota?.propietario || '';
-                }
-                titulo.textContent = `Historial Médico – ${mascotaNombre}`;
+            titulo.textContent = `Historial — ${mascota.nombre}`;
 
-                // Render
-                contenido.innerHTML = `
-                    <div class="historial-header" style="text-align:center;margin-bottom:16px;">
-                        <div style="font-size:1.1rem;font-weight:700;color:#111827;">${mascotaNombre}</div>
-                        ${propietarioNombre ? `<div style="color:#6b7280;">Propietario: ${propietarioNombre}</div>` : ''}
-                    </div>
+            // ── Ficha fija de la mascota ─────────────────────────────────────
+            const emoji = { gato: '🐈', perro: '🐕', ave: '🐦', roedor: '🐁' }[
+                (mascota.especie || '').toLowerCase()
+            ] || '🐾';
 
-                    <div class="historial-section">
-                        <h4 style="text-align:center;">Recetas</h4>
-                        ${recetas.length === 0 ? `
-                            <div class="historial-item" style="text-align:center;color:#6b7280;">No hay recetas registradas</div>
-                        ` : recetas.map(r => {
-                                const estadoClass = (r.estado === 'expirada') ? 'status-expired' : (r.estado === 'completada' ? 'status-completed' : 'status-active');
-                                return `
-                                <div class="historial-item receta-card" style="max-width:800px;margin:12px auto;background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-                                    <div class="historial-item-header" style="display:flex;justify-content:space-between;align-items:center;">
-                                        <span class="historial-item-title" style="font-weight:700;">${r.codigo || `REC-${String(r.id).padStart(3,'0')}`}</span>
-                                        <span class="status-badge ${estadoClass}">${(r.estado || '').toUpperCase()}</span>
-                                    </div>
-                                    <div class="historial-item-content">
-                                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-bottom:8px;">
-                                            <div><strong>Médico:</strong> ${r.medico?.nombre || 'N/A'}</div>
-                                            <div><strong>Emisión:</strong> ${r.fecha_emision || '-'}</div>
-                                            <div><strong>Vence:</strong> ${r.fecha_vencimiento || '-'}</div>
-                                            <div><strong>Diagnóstico:</strong> ${r.diagnostico || '-'}</div>
-                                        </div>
-                                        <div>
-                                            <strong>Medicamentos:</strong>
-                                            <ul style="margin:6px 0 0 18px;">
-                                                ${(r.medicamentos && r.medicamentos.length) ? r.medicamentos.map(m => {
-                                                        const partes = [
-                                                            m.dosis ? `Dosis: ${m.dosis}` : '',
-                                                            m.frecuencia ? `Frecuencia: ${m.frecuencia}` : '',
-                                                            m.duracion ? `Duración: ${m.duracion}` : ''
-                                                        ].filter(Boolean).join(' • ');
-                                                        return `<li><strong>${m.nombre}</strong>${partes ? ` – ${partes}` : ''}${m.instrucciones ? `.<br/><em>${m.instrucciones}</em>` : ''}</li>`;
-                                                }).join('') : '<li>No hay medicamentos registrados</li>'}
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>`;
-                        }).join('')}
-                    </div>
-                `;
+            const chips = [
+                mascota.especie  ? `<span class="h-chip">${mascota.especie}</span>` : '',
+                mascota.raza     ? `<span class="h-chip">${mascota.raza}</span>` : '',
+                mascota.propietario ? `<span class="h-chip">👤 ${mascota.propietario}</span>` : '',
+                `<span class="h-chip">${timeline.length} registro${timeline.length !== 1 ? 's' : ''}</span>`,
+                mascota.alergias ? `<span class="h-chip h-chip-alerta">⚠️ ${mascota.alergias}</span>` : '',
+            ].filter(Boolean).join('');
+
+            ficha.innerHTML = `
+                <div class="h-ficha-avatar">${emoji}</div>
+                <div class="h-ficha-datos">
+                    <p class="h-ficha-nombre">${mascota.nombre}</p>
+                    <p class="h-ficha-sub">Historial médico completo</p>
+                    <div class="h-ficha-chips">${chips}</div>
+                </div>`;
+            ficha.style.display = 'flex';
+
+            // ── Entradas ─────────────────────────────────────────────────────
+            if (!timeline.length) {
+                scroll.innerHTML = '<div class="h-vacio">Esta mascota no tiene registros médicos aún.</div>';
+                return;
+            }
+
+            scroll.innerHTML = timeline.map((item) => {
+                if (item.tipo === 'consulta')       return renderConsulta(item);
+                if (item.tipo === 'hospitalizacion') return renderHospitalizacion(item);
+                return '';
+            }).join('');
+
         } catch (e) {
-                contenido.innerHTML = `<div style="text-align:center;padding:16px;color:#ef4444;">No se pudo cargar el historial: ${e.message}</div>`;
+            ficha.style.display = 'none';
+            scroll.innerHTML = `<div class="h-vacio" style="color:#ef4444;">
+                No se pudo cargar el historial: ${e.message}
+            </div>`;
         }
-}
+    }
 
-// Cerrar modales al hacer click fuera
-window.addEventListener('click', function(event) {
-    const modalMascota = document.getElementById('modal-mascota');
-    const modalHistorial = document.getElementById('modal-historial');
-    
-    if (event.target === modalMascota) {
-        cerrarModalMascota();
+    function renderConsulta(c) {
+        const estadoKey = (c.estado || 'programada').toLowerCase();
+        const tipoKey   = { urgencia: 'urgencia', 'cirugía': 'cirugia', cirugia: 'cirugia',
+                            'estética': 'estetica', estetica: 'estetica' }[
+                           (c.tipo_cita || '').toLowerCase()] || 'consulta';
+        const servicio  = c.tipo_servicio ? ` · ${c.tipo_servicio}` : '';
+
+        const pesoHtml = c.peso_mascota
+            ? `<span class="h-peso">⚖️ ${c.peso_mascota} kg registrado</span>` : '';
+
+        const diagHtml = c.diagnostico
+            ? `<div class="h-campo">
+                 <label>Diagnóstico</label>
+                 <p>${c.diagnostico}</p>
+               </div>` : '';
+
+        const obsHtml = c.observaciones
+            ? `<div class="h-campo">
+                 <label>Observaciones</label>
+                 <p>${c.observaciones}</p>
+               </div>` : '';
+
+        const recetasHtml = (c.recetas && c.recetas.length)
+            ? `<p class="h-recetas-titulo">💊 Tratamiento recetado</p>
+               ${c.recetas.map((r) => `
+                 <div class="h-receta">
+                   <span class="h-receta-med">${r.medicamento || '—'}</span>
+                   ${r.dosis ? `<span class="h-receta-dosis">· ${r.dosis}</span>` : ''}
+                   ${r.indicaciones ? `<p class="h-receta-ind">${r.indicaciones}</p>` : ''}
+                 </div>`).join('')}`
+            : `<p class="h-sin-recetas">Sin medicamentos recetados</p>`;
+
+        return `
+            <div class="h-card">
+                <div class="h-card-top">
+                    <span class="h-card-fecha">📅 ${fmt(c.fecha)}${c.hora ? ` · ${c.hora}` : ''}</span>
+                    <span class="h-badge h-badge-${tipoKey}">${c.tipo_cita || 'Consulta'}${servicio}</span>
+                    <span class="h-badge h-badge-${estadoKey}">${c.estado || ''}</span>
+                </div>
+                <div class="h-card-body">
+                    <p class="h-profesional">🩺 Dr/a. ${c.profesional}</p>
+                    ${pesoHtml}${diagHtml}${obsHtml}${recetasHtml}
+                </div>
+            </div>`;
     }
-    if (event.target === modalHistorial) {
-        cerrarModalHistorial();
+
+    function renderHospitalizacion(h) {
+        const estadoBadge = (h.estado || 'internado').toLowerCase().replace('í', 'i');
+        const egresoTxt   = h.fecha_egreso
+            ? `Egreso: ${fmt(h.fecha_egreso)}`
+            : 'Actualmente internado/a';
+
+        return `
+            <div class="h-card">
+                <div class="h-card-top">
+                    <span class="h-card-fecha">🏥 Hospitalización · Ingreso: ${fmt(h.fecha_ingreso)}</span>
+                    <span class="h-badge h-badge-${estadoBadge}">${h.estado || 'Internado'}</span>
+                </div>
+                <div class="h-card-body">
+                    <p class="h-profesional">📅 ${egresoTxt}</p>
+                    ${h.observaciones
+                        ? `<div class="h-campo">
+                             <label>Observaciones</label>
+                             <p>${h.observaciones}</p>
+                           </div>`
+                        : ''}
+                </div>
+            </div>`;
     }
-});
+
+    function fmt(fechaStr) {
+        if (!fechaStr) return '—';
+        const [y, m, d] = String(fechaStr).substring(0, 10).split('-');
+        return `${d}/${m}/${y}`;
+    }
+
+    // ─── Exports globales ────────────────────────────────────────────────────
+    window.verHistorial         = verHistorial;
+    window.cerrarModalHistorial = cerrarModalHistorial;
+    window.abrirModalMascota    = abrirModalMascota;
+    window.cerrarModalMascota   = cerrarModalMascota;
+    window.guardarMascota       = guardarMascota;
+})();

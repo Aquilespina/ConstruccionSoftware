@@ -33,4 +33,8 @@ Route::group([], function () {
 
     // Dashboard de recepción
     Route::get('/dashboard/recepcion', [DashboardController::class, 'stats'])->name('api.dashboard.recepcion');
+
+    // Historial médico de una mascota
+    Route::get('/expedientes/{id}/historial', [\App\Http\Controllers\Recepcion\ExpedienteController::class, 'historial'])
+        ->name('api.expedientes.historial');
 });

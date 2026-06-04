@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Propietario\Propietario;
 use App\Models\Receta\Receta;
 use App\Models\Cita\Cita;
+use App\Models\Hospitalizaciones\Hospitalizaciones;
 
 class Mascota extends Model
 {
@@ -147,12 +148,13 @@ public function propietario(): BelongsTo
         return response()->json($propietarios);
     }
 
-   public function citas()
-{
-    return $this->hasMany(
-        Cita::class,
-        'id_mascota',
-        'id_mascota'
-    );
-}
+    public function citas()
+    {
+        return $this->hasMany(Cita::class, 'id_mascota', 'id_mascota');
+    }
+
+    public function hospitalizaciones()
+    {
+        return $this->hasMany(Hospitalizaciones::class, 'id_mascota', 'id_mascota');
+    }
 }

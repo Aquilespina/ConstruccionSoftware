@@ -85,10 +85,6 @@
     background: #f8fafc;
   }
 
-  .tipo-cita { color: #2563eb; font-weight: 600; }
-  .tipo-espera { color: #f59e0b; font-weight: 600; }
-  .tipo-urgencia { color: #ef4444; font-weight: 600; }
-
   .status-badge {
     padding: 6px 10px;
     border-radius: 999px;
@@ -96,9 +92,9 @@
     font-weight: 700;
   }
 
-  .status-completed { background:#d1fae5; color:#065f46; }
-  .status-expired { background:#fee2e2; color:#991b1b; }
-  .status-pending { background:#fff7ed; color:#92400e; }
+  .status-completed  { background:#d1fae5; color:#065f46; }
+  .status-cancelled  { background:#fee2e2; color:#991b1b; }
+  .status-pending    { background:#fff7ed; color:#92400e; }
 
   .empty-state {
     text-align: center;
@@ -177,7 +173,7 @@
             <th>Hora</th>
             <th>Paciente</th>
             <th>Propietario</th>
-            <th>Tipo</th>
+            <th>Profesional</th>
             <th>Estado</th>
           </tr>
         </thead>
@@ -200,8 +196,13 @@
 <script>
 async function cargarDashboard() {
   try {
-    const resp = await fetch('/api/dashboard/recepcion', {
-      headers: { 'Accept': 'application/json' }
+    const resp = await fetch('/api/dashboard/recepcion?_=' + Date.now(), {
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-store'
     });
 
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -219,29 +220,31 @@ async function cargarDashboard() {
 
     if (Array.isArray(data.flujo_diario) && data.flujo_diario.length) {
 
+      const estadoClase = e => {
+        const v = (e || '').toLowerCase();
+        if (v === 'completada') return 'status-completed';
+        if (v === 'cancelada')  return 'status-cancelled';
+        return 'status-pending';
+      };
+
+      const estadoLabel = e => {
+        const v = (e || '').toLowerCase();
+        if (v === 'completada') return 'Completada';
+        if (v === 'cancelada')  return 'Cancelada';
+        return 'En espera';
+      };
+
       tbody.innerHTML = data.flujo_diario.map(item => `
         <tr class="flujo-row">
-
-          <td>${(item.hora || '').slice(0,5) || '-'}</td>
-
+          <td>${item.hora || '-'}</td>
           <td><strong>${item.paciente || '-'}</strong></td>
-
           <td>${item.propietario || '-'}</td>
-
-          <td class="${item.tipo === 'ESPERA' ? 'tipo-espera' : 'tipo-cita'}">
-            ${item.tipo || '-'}
-          </td>
-
+          <td>${item.profesional || '-'}</td>
           <td>
-            <span class="status-badge ${
-              ['ATENDIDO', 'COMPLETADA', 'COMPLETADO'].includes(item.estado) ? 'status-completed' :
-              ['CANCELADO', 'CANCELADA'].includes(item.estado) ? 'status-expired' :
-              'status-pending'
-            }">
-              ${item.estado || '-'}
+            <span class="status-badge ${estadoClase(item.estado)}">
+              ${estadoLabel(item.estado)}
             </span>
           </td>
-
         </tr>
       `).join('');
 

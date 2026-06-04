@@ -4,8 +4,10 @@ namespace App\Models\Cita;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Mascota\Mascota;
 use App\Models\Profesional;
+use App\Models\Receta\Receta;
 
 class Cita extends Model
 {
@@ -44,6 +46,11 @@ class Cita extends Model
     public function profesional(): BelongsTo
     {
         return $this->belongsTo(Profesional::class, 'rfc_profesional', 'rfc');
+    }
+
+    public function recetas(): HasMany
+    {
+        return $this->hasMany(Receta::class, 'id_cita', 'id_cita');
     }
 
     // Accesores prácticos

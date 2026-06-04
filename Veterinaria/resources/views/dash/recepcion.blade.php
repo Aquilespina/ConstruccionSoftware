@@ -57,11 +57,11 @@
           <span class="nav-label">Citas</span>
         </a>
 
-        <!-- Expedientes (nombre: recepcion.expedientes) -->
+        <!-- Historial Médico (nombre: recepcion.expedientes) -->
         <a href="{{ route('recepcion.expedientes') }}"
            class="nav-item {{ request()->routeIs('recepcion.expedientes') ? 'active' : '' }}">
-          <span class="nav-icon">📄</span>
-          <span class="nav-label">Expedientes</span>
+          <span class="nav-icon">📋</span>
+          <span class="nav-label">Historial Médico</span>
         </a>
 
         <!-- Recetas (nombre: recepcion.recetas) -->

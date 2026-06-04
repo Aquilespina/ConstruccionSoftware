@@ -77,42 +77,31 @@ class DashboardController extends Controller
                 'estado' => 'En espera',
             ]);
 
-        // Flujo clínico diario: citas atendidas/completadas + esperas programadas
-        $citasFlujo = (clone $citasBase)
-            ->whereRaw('LOWER(c.estado) != ?', ['programada'])
-            ->orderBy('c.fecha')
-            ->orderBy('c.' . $timeColumn)
-            ->limit(20)
-            ->get();
-
-        $esperaFlujo = (clone $citasBase)
-            ->whereRaw('LOWER(c.estado) = ?', ['programada'])
-            ->orderBy('c.fecha')
-            ->orderBy('c.' . $timeColumn)
-            ->limit(20)
-            ->get();
-
-        $flujoDiario = collect($citasFlujo)
-            ->map(fn ($cita) => [
-                'fecha' => Carbon::parse($cita->fecha)->format('Y-m-d'),
-                'hora' => $cita->hora,
-                'paciente' => $cita->paciente ?? '-',
-                'propietario' => $cita->propietario ?? '-',
-                'tipo' => 'CITA',
-                'estado' => strtoupper((string) ($cita->estado ?? 'PROGRAMADA')),
-            ])
-            ->merge(
-                collect($esperaFlujo)->map(fn ($p) => [
-                    'fecha' => Carbon::parse($p->fecha)->format('Y-m-d'),
-                    'hora' => $p->hora,
-                    'paciente' => $p->paciente ?? '-',
-                    'propietario' => $p->propietario ?? '-',
-                    'tipo' => 'ESPERA',
-                    'estado' => 'EN_ESPERA',
+        // Flujo clínico diario: todas las citas de hoy ordenadas por hora
+        $flujoDebug = null;
+        try {
+            $flujoDiario = DB::table('cita as c')
+                ->leftJoin('mascota as m', 'c.id_mascota', '=', 'm.id_mascota')
+                ->leftJoin($propietarioTable . ' as p', 'm.id_propietario', '=', 'p.id_propietario')
+                ->leftJoin('profesional as pr', 'c.rfc_profesional', '=', 'pr.rfc')
+                ->selectRaw("c.$timeColumn as hora, m.nombre as paciente, $propietarioNameSql, pr.nombre as profesional, c.tipo_cita, c.estado")
+                ->whereDate('c.fecha', $hoy->toDateString())
+                ->orderBy('c.' . $timeColumn)
+                ->limit(30)
+                ->get()
+                ->map(fn ($c) => [
+                    'hora'        => substr((string) ($c->hora ?? ''), 0, 5),
+                    'paciente'    => $c->paciente ?? '-',
+                    'propietario' => $c->propietario ?? '-',
+                    'profesional' => $c->profesional ?? '-',
+                    'tipo_cita'   => $c->tipo_cita ?? '-',
+                    'estado'      => ucfirst(strtolower((string) ($c->estado ?? 'programada'))),
                 ])
-            )
-            ->sortBy(fn ($item) => ($item['fecha'] ?? '') . ' ' . ($item['hora'] ?? ''))
-            ->values();
+                ->values();
+        } catch (\Throwable $e) {
+            $flujoDiario = collect();
+            $flujoDebug = $e->getMessage();
+        }
 
         return response()->json([
             'citas_hoy' => $citasHoy,
@@ -122,6 +111,16 @@ class DashboardController extends Controller
             'proximas_citas' => $proximasCitas,
             'pacientes_espera' => $pacientesEspera,
             'flujo_diario' => $flujoDiario,
+            '_debug' => [
+                'propietario_table' => $propietarioTable,
+                'time_column'       => $timeColumn,
+                'hoy'               => $hoy->toDateString(),
+                'flujo_error'       => $flujoDebug,
+            ],
+        ])->withHeaders([
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma'        => 'no-cache',
+            'Expires'       => '0',
         ]);
     }
 

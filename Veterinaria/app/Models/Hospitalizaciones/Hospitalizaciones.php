@@ -11,10 +11,10 @@ class Hospitalizaciones extends Model
 {
     //
 
-    protected $table = 'hospitalizaciones';
+    protected $table = 'hospitalizacion';
 
     protected $primaryKey = 'id_hospitalizacion';
-    public $timestamps = true;
+    public $timestamps = false;
 
     protected $fillable = [
         'id_mascota',
