@@ -8,8 +8,7 @@ class RecetasManager {
         this.filters = {
             search: '',
             estado: '',
-            medico: '',
-            fecha: ''
+            medico: ''
         };
         this.recetaActualId = null;
     }
@@ -37,7 +36,6 @@ class RecetasManager {
         const searchInput = document.getElementById('search-recetas');
         const filterEstado = document.getElementById('filter-estado-receta');
         const filterMedico = document.getElementById('filter-medico-receta');
-        const filterFecha = document.getElementById('filter-fecha-receta');
         
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
@@ -60,13 +58,38 @@ class RecetasManager {
             });
         }
         
-        if (filterFecha) {
-            filterFecha.addEventListener('change', (e) => {
-                this.filters.fecha = e.target.value;
-                this.filtrarRecetas();
+        // Validación en tiempo real para campos de texto del formulario
+        document.addEventListener('input', (e) => {
+            const input = e.target;
+            if (!input.classList.contains('receta-input-validado')) return;
+            const tipo  = input.dataset.tipo || 'texto';
+            const error = this.validarSinCaracteresEspeciales(input.value, input.name || 'campo', tipo);
+            if (error) {
+                input.style.borderColor = '#ef4444';
+                input.title = error;
+            } else {
+                input.style.borderColor = '';
+                input.title = '';
+            }
+        });
+
+        // Validación en tiempo real para diagnóstico e instrucciones
+        ['receta-diagnostico', 'receta-instrucciones', 'receta-observaciones'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const tipo = id === 'receta-diagnostico' ? 'nombre' : 'instrucciones';
+            el.addEventListener('input', () => {
+                const error = this.validarSinCaracteresEspeciales(el.value, el.id, tipo);
+                if (error) {
+                    el.style.borderColor = '#ef4444';
+                    el.title = error;
+                } else {
+                    el.style.borderColor = '';
+                    el.title = '';
+                }
             });
-        }
-        
+        });
+
         // Cerrar modales al hacer click fuera
         document.addEventListener('click', (e) => {
             const modalReceta = document.getElementById('modal-receta');
@@ -86,86 +109,87 @@ class RecetasManager {
         const hoy = new Date().toISOString().split('T')[0];
         const fechaEmision = document.getElementById('receta-fecha-emision');
         const fechaVencimiento = document.getElementById('receta-vencimiento');
-        
+
         if (fechaEmision) {
             fechaEmision.value = hoy;
+            fechaEmision.setAttribute('readonly', true);
         }
-        
-        // Establecer vencimiento por defecto (7 días)
+
         if (fechaVencimiento) {
-            const vencimiento = new Date();
-            vencimiento.setDate(vencimiento.getDate() + 7);
-            fechaVencimiento.value = vencimiento.toISOString().split('T')[0];
+            this.actualizarLimitesFechaVencimiento(hoy);
+            const vencimientoDefault = new Date();
+            vencimientoDefault.setDate(vencimientoDefault.getDate() + 7);
+            fechaVencimiento.value = vencimientoDefault.toISOString().split('T')[0];
         }
+    }
+
+    actualizarLimitesFechaVencimiento(fechaEmisionStr) {
+        const fechaVencimiento = document.getElementById('receta-vencimiento');
+        if (!fechaVencimiento || !fechaEmisionStr) return;
+
+        const emision = new Date(fechaEmisionStr + 'T00:00:00');
+
+        const minVenc = new Date(emision);
+        minVenc.setDate(minVenc.getDate() + 1);
+
+        const maxVenc = new Date(emision);
+        maxVenc.setDate(maxVenc.getDate() + 14);
+
+        fechaVencimiento.setAttribute('min', minVenc.toISOString().split('T')[0]);
+        fechaVencimiento.setAttribute('max', maxVenc.toISOString().split('T')[0]);
+    }
+
+    validarSinCaracteresEspeciales(valor, nombreCampo, tipo = 'texto') {
+        if (!valor || valor.trim() === '') return null;
+
+        const patrones = {
+            nombre:        /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ0-9\s.,\-()']+$/,
+            dosis:         /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ0-9\s.\/\-]+$/,
+            frecuencia:    /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ0-9\s.,\-()]+$/,
+            instrucciones: /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ0-9\s.,;:\-()'"/]+$/,
+            texto:         /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ0-9\s.,;:\-()']+$/,
+        };
+
+        const patron = patrones[tipo] || patrones.texto;
+        if (!patron.test(valor.trim())) {
+            return `"${nombreCampo}" contiene caracteres no permitidos. Solo se aceptan letras, números y puntuación básica (. , - ( ) ')`;
+        }
+        return null;
     }
 
     async cargarRecetas() {
         try {
-            console.log('Cargando recetas...');
             const response = await this.fetchRecetas();
             this.recetas = response.data || [];
             this.totalPages = response.meta?.last_page || 1;
-            
             this.renderizarRecetas();
             this.actualizarEstadisticas();
         } catch (error) {
             console.error('Error cargando recetas:', error);
-            this.mostrarError('Error al cargar las recetas');
+            this.mostrarError('Error al cargar las recetas: ' + error.message);
         }
     }
 
     async fetchRecetas() {
-        try {
-            // Aquí debes reemplazar con tu endpoint real de Laravel
-            const response = await fetch('/api/recetas', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error('Error en la respuesta del servidor');
+        const params = new URLSearchParams({ page: this.currentPage });
+        if (this.filters.search) params.append('search', this.filters.search);
+        if (this.filters.estado)  params.append('estado',  this.filters.estado);
+        if (this.filters.medico)  params.append('medico',  this.filters.medico);
+
+        const response = await fetch(`/api/recetas?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
             }
-            
-            return await response.json();
-        } catch (error) {
-            console.warn('Usando datos de prueba:', error);
-            // Datos de prueba mientras implementas el backend
-            return {
-                data: [
-                    {
-                        id: 1,
-                        codigo: 'REC-001',
-                        mascota: { nombre: 'Max', propietario: 'María Rodríguez' },
-                        medico: { nombre: 'Dra. Laura Méndez' },
-                        fecha_emision: '2024-01-15',
-                        fecha_vencimiento: '2024-01-30',
-                        diagnostico: 'Infección respiratoria',
-                        estado: 'activa',
-                        medicamentos_count: 3
-                    },
-                    {
-                        id: 2,
-                        codigo: 'REC-002',
-                        mascota: { nombre: 'Luna', propietario: 'Carlos Pérez' },
-                        medico: { nombre: 'Dr. Roberto García' },
-                        fecha_emision: '2024-01-10',
-                        fecha_vencimiento: '2024-01-25',
-                        diagnostico: 'Alergia alimentaria',
-                        estado: 'expirada',
-                        medicamentos_count: 2
-                    }
-                ],
-                meta: { 
-                    total: 2,
-                    per_page: 10,
-                    current_page: 1,
-                    last_page: 1 
-                }
-            };
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error ${response.status} al cargar las recetas`);
         }
+
+        return await response.json();
     }
 
     renderizarRecetas() {
@@ -220,10 +244,6 @@ class RecetasManager {
             <td>
                 <div style="display:flex;gap:0.5rem;align-items:center;">
                     <button class="receta-btn-ver" onclick="recetasManager.verReceta(${receta.id})">Ver</button>
-                    ${receta.estado === 'expirada' ?
-                        `<button class="receta-btn-renovar" onclick="recetasManager.renovarReceta(${receta.id})">Renovar</button>` :
-                        ''
-                    }
                 </div>
             </td>
         `;
@@ -231,20 +251,22 @@ class RecetasManager {
 
     getClassEstado(estado) {
         const estados = {
-            'activa':     'status-active',
-            'expirada':   'status-expired',
-            'completada': 'status-completed',
-            'cancelada':  'status-cancelled',
+            'activa':      'status-active',
+            'por_vencer':  'status-warning',
+            'expirada':    'status-expired',
+            'completada':  'status-completed',
+            'cancelada':   'status-cancelled',
         };
         return estados[estado] || 'status-pending';
     }
 
     getTextEstado(estado) {
         const textos = {
-            'activa': 'Activa',
-            'expirada': 'Expirada',
+            'activa':     'Activa',
+            'por_vencer': 'Por vencer',
+            'expirada':   'Expirada',
             'completada': 'Completada',
-            'cancelada': 'Cancelada'
+            'cancelada':  'Cancelada',
         };
         return textos[estado] || estado;
     }
@@ -333,29 +355,34 @@ class RecetasManager {
                 <div class="medicamento-form">
                     <div class="form-group">
                         <label>Medicamento *</label>
-                        <input type="text" name="medicamentos[${index}][nombre]" 
-                               class="form-control" placeholder="Nombre del medicamento" required>
+                        <input type="text" name="medicamentos[${index}][nombre]"
+                               class="form-control receta-input-validado" placeholder="Nombre del medicamento"
+                               data-tipo="nombre" required>
                     </div>
                     <div class="form-group">
                         <label>Dosis *</label>
-                        <input type="text" name="medicamentos[${index}][dosis]" 
-                               class="form-control" placeholder="Ej: 5mg" required>
+                        <input type="text" name="medicamentos[${index}][dosis]"
+                               class="form-control receta-input-validado" placeholder="Ej: 5mg"
+                               data-tipo="dosis" required>
                     </div>
                     <div class="form-group">
                         <label>Frecuencia *</label>
-                        <input type="text" name="medicamentos[${index}][frecuencia]" 
-                               class="form-control" placeholder="Ej: Cada 8 horas" required>
+                        <input type="text" name="medicamentos[${index}][frecuencia]"
+                               class="form-control receta-input-validado" placeholder="Ej: Cada 8 horas"
+                               data-tipo="frecuencia" required>
                     </div>
                     <div class="form-group">
                         <label>Duración *</label>
-                        <input type="text" name="medicamentos[${index}][duracion]" 
-                               class="form-control" placeholder="Ej: 7 días" required>
+                        <input type="text" name="medicamentos[${index}][duracion]"
+                               class="form-control receta-input-validado" placeholder="Ej: 7 días"
+                               data-tipo="frecuencia" required>
                     </div>
                 </div>
                 <div class="form-group">
                     <label>Instrucciones específicas</label>
-                    <textarea name="medicamentos[${index}][instrucciones]" 
-                              class="form-control" rows="2" 
+                    <textarea name="medicamentos[${index}][instrucciones]"
+                              class="form-control receta-input-validado" rows="2"
+                              data-tipo="instrucciones"
                               placeholder="Instrucciones específicas para este medicamento..."></textarea>
                 </div>
             </div>
@@ -444,6 +471,8 @@ class RecetasManager {
     }
 
     validarReceta() {
+        const errores = [];
+
         // Validar que haya al menos un medicamento
         if (this.medicamentos.length === 0) {
             this.mostrarError('Debe agregar al menos un medicamento');
@@ -451,22 +480,80 @@ class RecetasManager {
         }
 
         // Validar campos requeridos
-        const paciente = document.getElementById('receta-paciente')?.value;
-        const medico = document.getElementById('receta-medico')?.value;
-        const diagnostico = document.getElementById('receta-diagnostico')?.value;
-        const instrucciones = document.getElementById('receta-instrucciones')?.value;
+        const paciente    = document.getElementById('receta-paciente')?.value;
+        const medico      = document.getElementById('receta-medico')?.value;
+        const diagnostico = document.getElementById('receta-diagnostico')?.value?.trim();
+        const instrucciones = document.getElementById('receta-instrucciones')?.value?.trim();
 
         if (!paciente || !medico || !diagnostico || !instrucciones) {
             this.mostrarError('Por favor complete todos los campos obligatorios');
             return false;
         }
 
-        // Validar fecha de vencimiento
-        const fechaEmision = document.getElementById('receta-fecha-emision')?.value;
+        // Validar caracteres en campos de texto
+        const errDiag = this.validarSinCaracteresEspeciales(diagnostico, 'Diagnóstico', 'nombre');
+        if (errDiag) errores.push(errDiag);
+
+        const errInstr = this.validarSinCaracteresEspeciales(instrucciones, 'Instrucciones de uso', 'instrucciones');
+        if (errInstr) errores.push(errInstr);
+
+        const observaciones = document.getElementById('receta-observaciones')?.value?.trim();
+        if (observaciones) {
+            const errObs = this.validarSinCaracteresEspeciales(observaciones, 'Observaciones', 'instrucciones');
+            if (errObs) errores.push(errObs);
+        }
+
+        // Validar fechas
+        const fechaEmision     = document.getElementById('receta-fecha-emision')?.value;
         const fechaVencimiento = document.getElementById('receta-vencimiento')?.value;
-        
-        if (fechaVencimiento && fechaEmision && new Date(fechaVencimiento) <= new Date(fechaEmision)) {
-            this.mostrarError('La fecha de vencimiento debe ser posterior a la fecha de emisión');
+
+        if (fechaEmision && fechaVencimiento) {
+            const emision     = new Date(fechaEmision + 'T00:00:00');
+            const vencimiento = new Date(fechaVencimiento + 'T00:00:00');
+
+            if (vencimiento <= emision) {
+                errores.push('La fecha de vencimiento debe ser posterior a la fecha de emisión');
+            } else {
+                const maxVencimiento = new Date(emision);
+                maxVencimiento.setDate(maxVencimiento.getDate() + 14);
+                if (vencimiento > maxVencimiento) {
+                    errores.push('La fecha de vencimiento no puede superar los 14 días desde la emisión (máximo para tratamientos veterinarios)');
+                }
+            }
+        }
+
+        // Validar campos de medicamentos
+        const elementosMeds = document.querySelectorAll('.medicamento-item');
+        elementosMeds.forEach((elem, idx) => {
+            const num     = idx + 1;
+            const inputs  = elem.querySelectorAll('input[type="text"], input:not([type])');
+            const nombre  = inputs[0]?.value?.trim();
+            const dosis   = inputs[1]?.value?.trim();
+            const frec    = inputs[2]?.value?.trim();
+            const dur     = inputs[3]?.value?.trim();
+
+            [
+                [nombre, `Medicamento ${num} - Nombre`,    'nombre'],
+                [dosis,  `Medicamento ${num} - Dosis`,     'dosis'],
+                [frec,   `Medicamento ${num} - Frecuencia`,'frecuencia'],
+                [dur,    `Medicamento ${num} - Duración`,  'frecuencia'],
+            ].forEach(([val, campo, tipo]) => {
+                if (val) {
+                    const err = this.validarSinCaracteresEspeciales(val, campo, tipo);
+                    if (err) errores.push(err);
+                }
+            });
+
+            const textarea = elem.querySelector('textarea');
+            const instrMed = textarea?.value?.trim();
+            if (instrMed) {
+                const err = this.validarSinCaracteresEspeciales(instrMed, `Medicamento ${num} - Instrucciones`, 'instrucciones');
+                if (err) errores.push(err);
+            }
+        });
+
+        if (errores.length > 0) {
+            this.mostrarError(errores.join('\n'));
             return false;
         }
 
@@ -545,18 +632,23 @@ class RecetasManager {
         const form = document.getElementById('form-receta');
         if (form) {
             form.reset();
+            // Limpiar marcas de error de validación
+            form.querySelectorAll('input, textarea').forEach(el => {
+                el.style.borderColor = '';
+                el.title = '';
+            });
         }
-        
+
         const listaMedicamentos = document.getElementById('lista-medicamentos');
         if (listaMedicamentos) {
             listaMedicamentos.innerHTML = '';
         }
-        
+
         const infoPaciente = document.getElementById('info-paciente');
         if (infoPaciente) {
             infoPaciente.style.display = 'none';
         }
-        
+
         this.medicamentos = [];
         this.recetaActualId = null;
         this.setFechaHoy();
@@ -571,11 +663,7 @@ class RecetasManager {
             if (modal) {
                 modal.style.display = 'flex';
                 
-                // Mostrar botón de renovar solo si está expirada
-                const btnRenovar = document.getElementById('btn-renovar-receta');
-                if (btnRenovar) {
-                    btnRenovar.style.display = receta.estado === 'expirada' ? 'inline-block' : 'none';
-                }
+
             }
         } catch (error) {
             console.error('Error cargando receta:', error);
@@ -725,45 +813,6 @@ class RecetasManager {
         window.print();
     }
 
-    async renovarReceta() {
-        if (!this.recetaActualId) return;
-        
-        if (!confirm('¿Está seguro de que desea renovar esta receta?')) {
-            return;
-        }
-
-        try {
-            await this.renewReceta(this.recetaActualId);
-            this.mostrarExito('Receta renovada correctamente');
-            this.cerrarModalVerReceta();
-            await this.cargarRecetas();
-        } catch (error) {
-            console.error('Error renovando receta:', error);
-            this.mostrarError('Error al renovar la receta');
-        }
-    }
-
-    async renewReceta(id) {
-        try {
-            const response = await fetch(`/api/recetas/${id}/renovar`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Error al renovar receta');
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.warn('Simulando renovación de receta:', error);
-            return new Promise(resolve => setTimeout(resolve, 1000));
-        }
-    }
-
     filtrarRecetas() {
         console.log('Aplicando filtros:', this.filters);
         this.currentPage = 1;
@@ -814,46 +863,99 @@ class RecetasManager {
         this.cargarRecetas();
     }
 
-    exportarRecetas() {
-        // Implementar exportación a PDF o Excel
-        console.log('Exportando recetas...');
-        this.mostrarExito('Exportación iniciada');
-        
-        // Simulación de exportación
-        setTimeout(() => {
-            this.mostrarExito('Recetas exportadas correctamente');
-        }, 2000);
+    async exportarRecetas() {
+        if (typeof XLSX === 'undefined') {
+            this.mostrarError('La librería de exportación no está disponible. Recargue la página.');
+            return;
+        }
+
+        const btnExportar = document.getElementById('btn-exportar-recetas');
+        const textoOriginal = btnExportar?.innerHTML;
+        if (btnExportar) {
+            btnExportar.disabled = true;
+            btnExportar.innerHTML = '⏳ Exportando...';
+        }
+
+        try {
+            // Traer todos los registros respetando los filtros activos
+            const params = new URLSearchParams({ per_page: 1000, page: 1 });
+            if (this.filters.search) params.append('search', this.filters.search);
+            if (this.filters.estado)  params.append('estado',  this.filters.estado);
+            if (this.filters.medico)  params.append('medico',  this.filters.medico);
+
+            const response = await fetch(`/api/recetas?${params.toString()}`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                }
+            });
+
+            if (!response.ok) throw new Error(`Error ${response.status}`);
+
+            const json    = await response.json();
+            const recetas = json.data || [];
+
+            if (recetas.length === 0) {
+                this.mostrarError('No hay recetas para exportar con los filtros actuales');
+                return;
+            }
+
+            const filas = recetas.map(r => ({
+                'Código':          r.codigo || '',
+                'Paciente':        r.mascota?.nombre || '',
+                'Propietario':     r.mascota?.propietario || '',
+                'Médico':          r.medico?.nombre || '',
+                'Especialidad':    r.medico?.especialidad || '',
+                'Fecha Emisión':   r.fecha_emision  || '',
+                'Vencimiento':     r.fecha_vencimiento || '',
+                'Estado':          this.getTextEstado(r.estado),
+                'Diagnóstico':     r.diagnostico || '',
+                'Medicamento':     r.medicamento || '',
+                'Dosis':           r.dosis || '',
+                'Indicaciones':    r.indicaciones || '',
+            }));
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(filas);
+
+            // Anchos de columna
+            ws['!cols'] = [
+                { wch: 10 }, { wch: 20 }, { wch: 26 }, { wch: 26 }, { wch: 22 },
+                { wch: 14 }, { wch: 14 }, { wch: 12 },
+                { wch: 36 }, { wch: 26 }, { wch: 10 }, { wch: 40 },
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Recetas');
+
+            const fecha = new Date().toISOString().split('T')[0];
+            XLSX.writeFile(wb, `Recetas_VeteClini_${fecha}.xlsx`);
+
+        } catch (error) {
+            console.error('Error exportando:', error);
+            this.mostrarError('Error al exportar las recetas: ' + error.message);
+        } finally {
+            if (btnExportar) {
+                btnExportar.disabled = false;
+                btnExportar.innerHTML = textoOriginal;
+            }
+        }
     }
 
     actualizarEstadisticas() {
-        const total = this.recetas.length;
-        const activas = this.recetas.filter(r => r.estado === 'activa').length;
+        const total     = this.recetas.length;
+        const activas   = this.recetas.filter(r => r.estado === 'activa').length;
+        const porVencer = this.recetas.filter(r => r.estado === 'por_vencer').length;
         const expiradas = this.recetas.filter(r => r.estado === 'expirada').length;
-        
-        // Calcular próximas a expirar (en los próximos 3 días)
-        const hoy = new Date();
-        const en3Dias = new Date();
-        en3Dias.setDate(hoy.getDate() + 3);
-        
-        const porExpirar = this.recetas.filter(r => {
-            try {
-                const vencimiento = new Date(r.fecha_vencimiento);
-                return vencimiento > hoy && vencimiento <= en3Dias && r.estado === 'activa';
-            } catch (error) {
-                return false;
-            }
-        }).length;
 
-        // Actualizar estadísticas en la UI
-        const totalElement = document.getElementById('total-recetas');
-        const activasElement = document.getElementById('recetas-activas');
-        const expiradasElement = document.getElementById('recetas-expiradas');
-        const vencidasElement = document.getElementById('recetas-vencidas');
+        const totalElement     = document.getElementById('total-recetas');
+        const activasElement   = document.getElementById('recetas-activas');
+        const porVencerElement = document.getElementById('recetas-expiradas');
+        const expiradasElement = document.getElementById('recetas-vencidas');
 
-        if (totalElement) totalElement.textContent = total;
-        if (activasElement) activasElement.textContent = activas;
-        if (expiradasElement) expiradasElement.textContent = porExpirar;
-        if (vencidasElement) vencidasElement.textContent = expiradas;
+        if (totalElement)     totalElement.textContent     = total;
+        if (activasElement)   activasElement.textContent   = activas;
+        if (porVencerElement) porVencerElement.textContent = porVencer;
+        if (expiradasElement) expiradasElement.textContent = expiradas;
     }
 
     mostrarExito(mensaje) {

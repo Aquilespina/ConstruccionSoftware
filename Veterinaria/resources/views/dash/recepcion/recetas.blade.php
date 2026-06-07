@@ -28,9 +28,8 @@
       <select class="filter-select" id="filter-estado-receta">
         <option value="">Todos los estados</option>
         <option value="activa">Activa</option>
+        <option value="por_vencer">Por vencer</option>
         <option value="expirada">Expirada</option>
-        <option value="completada">Completada</option>
-        <option value="cancelada">Cancelada</option>
       </select>
       <select class="filter-select" id="filter-medico-receta">
         <option value="">Todos los médicos</option>
@@ -38,7 +37,6 @@
           <option value="{{ $medico->id }}">{{ $medico->nombre }}</option>
         @endforeach
       </select>
-      <input type="date" class="filter-select" id="filter-fecha-receta" placeholder="Fecha">
     </div>
   </div>
 
@@ -185,11 +183,18 @@
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label for="receta-fecha-emision">Fecha Emisión *</label>
-                <input type="date" id="receta-fecha-emision" name="fecha_emision" class="form-control" required>
+                <label for="receta-fecha-emision">
+                  Fecha Emisión
+                  <span style="color:#6b7280;font-weight:normal;font-size:0.8em;"> (automática)</span>
+                </label>
+                <input type="date" id="receta-fecha-emision" name="fecha_emision" class="form-control" required readonly
+                       style="background:#f3f4f6;cursor:not-allowed;color:#6b7280;" title="La fecha de emisión se establece automáticamente">
               </div>
               <div class="form-group">
-                <label for="receta-vencimiento">Vencimiento *</label>
+                <label for="receta-vencimiento">
+                  Vencimiento *
+                  <span style="color:#6b7280;font-weight:normal;font-size:0.8em;"> (máx. 14 días)</span>
+                </label>
                 <input type="date" id="receta-vencimiento" name="fecha_vencimiento" class="form-control" required>
               </div>
             </div>
@@ -250,9 +255,6 @@
         <button type="button" class="btn-primary" onclick="recetasManager.imprimirReceta()">
           Imprimir
         </button>
-        <button type="button" class="btn-outline" id="btn-renovar-receta" onclick="recetasManager.renovarReceta()" style="display: none;">
-          Renovar
-        </button>
       </div>
     </div>
   </div>
@@ -260,5 +262,6 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="{{ asset('js/recepcion/recetas.js') }}"></script>
 @endpush

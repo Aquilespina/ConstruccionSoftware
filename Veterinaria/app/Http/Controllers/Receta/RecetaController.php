@@ -41,21 +41,29 @@ class RecetaController extends Controller
                 });
             }
             
-            if ($request->has('estado') && $request->estado != '') {
-                $estado = $request->estado;
-                $query->where('estado', $estado);
+            if ($request->filled('estado')) {
+                $hoy    = Carbon::today()->toDateString();
+                $limite = Carbon::today()->addDays(3)->toDateString();
+                if ($request->estado === 'activa') {
+                    // Estrictamente más de 3 días en el futuro
+                    $query->whereDate('proxima_cita', '>', $limite);
+                } elseif ($request->estado === 'expirada') {
+                    $query->where(function ($q) use ($hoy) {
+                        $q->whereNull('proxima_cita')
+                          ->orWhereDate('proxima_cita', '<', $hoy);
+                    });
+                } elseif ($request->estado === 'por_vencer') {
+                    // Desde hoy hasta 3 días
+                    $query->whereDate('proxima_cita', '>=', $hoy)
+                          ->whereDate('proxima_cita', '<=', $limite);
+                }
             }
-            
-            if ($request->has('medico') && $request->medico != '') {
-                // En este sistema 'medico' es el RFC del profesional
+
+            if ($request->filled('medico')) {
                 $rfcProfesional = $request->medico;
                 $query->whereHas('cita', function($q) use ($rfcProfesional) {
                     $q->where('rfc_profesional', $rfcProfesional);
                 });
-            }
-            
-            if ($request->has('fecha') && $request->fecha != '') {
-                $query->whereDate('fecha', $request->fecha);
             }
             
             // Paginación
@@ -437,19 +445,21 @@ class RecetaController extends Controller
     private function calcularEstado($proximaCita): string
     {
         if (!$proximaCita) {
-            return 'completada';
-        }
-        
-        $hoy = Carbon::now();
-        $proxima = Carbon::parse($proximaCita);
-        
-        if ($proxima->isPast()) {
             return 'expirada';
-        } elseif ($proxima->diffInDays($hoy) <= 3) {
-            return 'activa'; // Considerar como "por expirar" en el frontend
-        } else {
-            return 'activa';
         }
+
+        $hoy    = Carbon::today();
+        $proxima = Carbon::parse($proximaCita)->startOfDay();
+
+        if ($proxima->lt($hoy)) {
+            return 'expirada';
+        }
+
+        if ($proxima->diffInDays($hoy) <= 3) {
+            return 'por_vencer';
+        }
+
+        return 'activa';
     }
 
     /**

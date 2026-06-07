@@ -335,6 +335,7 @@
 }
 
 .status-active    { background: #d1fae5; color: #047857; }
+.status-warning   { background: #fef3c7; color: #92400e; }
 .status-pending   { background: #fef3c7; color: #92400e; }
 .status-expired   { background: #fee2e2; color: #991b1b; }
 .status-completed { background: #dbeafe; color: #1e40af; }
