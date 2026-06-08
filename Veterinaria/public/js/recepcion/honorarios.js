@@ -36,8 +36,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Guardar honorario
     window.guardarHonorario = function() {
+        limpiarErrores();
+
+        // Validación nativa del formulario (required, min, max, step)
+        // Necesaria porque el envío es por fetch y no dispara la validación HTML5 automática
+        if (!formHonorario.checkValidity()) {
+            formHonorario.reportValidity();
+            mostrarMensaje('warning', 'Revise los campos marcados: hay datos faltantes o inválidos');
+            return;
+        }
+
+        // Validación adicional de los detalles
+        const detalles = document.querySelectorAll('.detalle-item');
+        if (detalles.length === 0) {
+            mostrarMensaje('warning', 'Debe agregar al menos un concepto');
+            return;
+        }
+        for (const detalle of detalles) {
+            const concepto = detalle.querySelector('.concepto-input').value.trim();
+            const cantidad = parseInt(detalle.querySelector('.cantidad-input').value, 10);
+            const precio = parseFloat(detalle.querySelector('.precio-input').value);
+
+            if (!concepto) {
+                mostrarMensaje('warning', 'El concepto no puede estar vacío');
+                return;
+            }
+            if (!Number.isInteger(cantidad) || cantidad < 1 || cantidad > 9999) {
+                mostrarMensaje('warning', 'La cantidad debe ser un entero entre 1 y 9999');
+                return;
+            }
+            if (isNaN(precio) || precio < 0.01 || precio > 999999.99) {
+                mostrarMensaje('warning', 'El precio unitario debe estar entre 0.01 y 999999.99');
+                return;
+            }
+        }
+
         const formData = new FormData(formHonorario);
-        
+
         // Determinar si es creación o edición
         const isEdit = formHonorario.dataset.mode === 'edit';
         const honorarioId = formHonorario.dataset.honorarioId;
@@ -106,15 +141,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <div class="form-group form-group-small">
                         <label>Cantidad *</label>
-                        <input type="number" name="detalles[${detalleIndex}][cantidad]" 
-                               class="form-control cantidad-input" 
-                               min="1" value="1" required>
+                        <input type="number" name="detalles[${detalleIndex}][cantidad]"
+                               class="form-control cantidad-input"
+                               min="1" max="9999" step="1" value="1" required>
                     </div>
                     <div class="form-group">
                         <label>Precio Unitario *</label>
-                        <input type="number" name="detalles[${detalleIndex}][precio_unitario]" 
-                               class="form-control precio-input" 
-                               step="0.01" min="0" required>
+                        <input type="number" name="detalles[${detalleIndex}][precio_unitario]"
+                               class="form-control precio-input"
+                               step="0.01" min="0.01" max="999999.99" required>
                     </div>
                     <div class="form-group">
                         <label>Importe</label>
@@ -146,8 +181,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (container.children.length > 1) {
             detalleItem.remove();
             calcularSubtotal();
+            ocultarAlertaFormulario();
         } else {
-            mostrarMensaje('warning', 'Debe mantener al menos un concepto');
+            mostrarAlertaFormulario('Debe mantener al menos un concepto');
         }
     };
 
@@ -160,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Calcular importe automáticamente
         function calcularImporte() {
-            const cantidad = parseFloat(cantidadInput.value) || 0;
+            const cantidad = parseInt(cantidadInput.value, 10) || 0;
             const precio = parseFloat(precioInput.value) || 0;
             const importe = cantidad * precio;
             importeDisplay.value = '$' + importe.toFixed(2);
@@ -235,7 +271,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function calcularSubtotal() {
         let subtotal = 0;
         document.querySelectorAll('.detalle-item').forEach(detalle => {
-            const cantidad = parseFloat(detalle.querySelector('.cantidad-input').value) || 0;
+            const cantidad = parseInt(detalle.querySelector('.cantidad-input').value, 10) || 0;
             const precio = parseFloat(detalle.querySelector('.precio-input').value) || 0;
             subtotal += cantidad * precio;
         });
@@ -289,15 +325,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <div class="form-group form-group-small">
                         <label>Cantidad *</label>
-                        <input type="number" name="detalles[0][cantidad]" 
-                               class="form-control cantidad-input" 
-                               min="1" value="1" required>
+                        <input type="number" name="detalles[0][cantidad]"
+                               class="form-control cantidad-input"
+                               min="1" max="9999" step="1" value="1" required>
                     </div>
                     <div class="form-group">
                         <label>Precio Unitario *</label>
-                        <input type="number" name="detalles[0][precio_unitario]" 
-                               class="form-control precio-input" 
-                               step="0.01" min="0" required>
+                        <input type="number" name="detalles[0][precio_unitario]"
+                               class="form-control precio-input"
+                               step="0.01" min="0.01" max="999999.99" required>
                     </div>
                     <div class="form-group">
                         <label>Importe</label>
@@ -315,6 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('subtotal-display').textContent = '0.00';
         detalleIndex = 1;
         limpiarErrores();
+        ocultarAlertaFormulario();
         
         // Reconfigurar eventos
         document.querySelectorAll('.detalle-item').forEach(configurarEventosDetalle);
@@ -419,17 +456,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                         <div class="form-group form-group-small">
                             <label>Cantidad *</label>
-                            <input type="number" name="detalles[${index}][cantidad]" 
-                                   class="form-control cantidad-input" 
-                                   value="${detalle.cantidad}" 
-                                   min="1" required>
+                            <input type="number" name="detalles[${index}][cantidad]"
+                                   class="form-control cantidad-input"
+                                   value="${detalle.cantidad}"
+                                   min="1" max="9999" step="1" required>
                         </div>
                         <div class="form-group">
                             <label>Precio Unitario *</label>
-                            <input type="number" name="detalles[${index}][precio_unitario]" 
-                                   class="form-control precio-input" 
+                            <input type="number" name="detalles[${index}][precio_unitario]"
+                                   class="form-control precio-input"
                                    value="${detalle.precio_unitario}"
-                                   step="0.01" min="0" required>
+                                   step="0.01" min="0.01" max="999999.99" required>
                         </div>
                         <div class="form-group">
                             <label>Importe</label>
@@ -564,9 +601,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Procesar pago
     window.procesarPago = function() {
+        limpiarErrores();
+
+        // Validación nativa (el envío por fetch no dispara la validación HTML5)
+        if (!formPago.checkValidity()) {
+            formPago.reportValidity();
+            mostrarMensaje('warning', 'Revise los campos del pago: hay datos faltantes o inválidos');
+            return;
+        }
+
+        const inputMonto = document.getElementById('pago-monto');
+        const monto = parseFloat(inputMonto.value);
+        const saldoMax = parseFloat(inputMonto.max);
+
+        if (isNaN(monto) || monto < 0.01) {
+            mostrarMensaje('warning', 'El monto debe ser mayor a 0');
+            return;
+        }
+        if (!isNaN(saldoMax) && monto > saldoMax) {
+            mostrarMensaje('warning', `El monto no puede ser mayor al saldo pendiente ($${saldoMax.toFixed(2)})`);
+            return;
+        }
+
         const idHonorario = document.getElementById('pago-id-honorario').value;
         const formData = new FormData(formPago);
-        
+
         const btnProcesar = document.querySelector('.btn-primary[onclick="procesarPago()"]');
         const textoOriginal = btnProcesar.textContent;
         btnProcesar.textContent = 'Procesando...';
@@ -656,6 +715,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function mostrarAlertaFormulario(mensaje) {
+        const alerta = document.getElementById('honorario-form-alert');
+        if (alerta) {
+            document.getElementById('honorario-form-alert-msg').textContent = mensaje;
+            alerta.style.display = 'block';
+        }
+    }
+
+    function ocultarAlertaFormulario() {
+        const alerta = document.getElementById('honorario-form-alert');
+        if (alerta) alerta.style.display = 'none';
+    }
+
     function mostrarPreviewPago(monto) {
         const previewDiv = document.getElementById('pago-preview');
         const idHonorario = document.getElementById('pago-id-honorario').value;
@@ -678,4 +750,43 @@ document.addEventListener('DOMContentLoaded', function() {
             previewDiv.style.display = 'none';
         }
     }
+
+    // ── Filtros automáticos ──────────────────────────────────────────────────
+
+    function filtrarTabla() {
+        const busqueda    = (document.getElementById('search-honorarios')?.value ?? '').toLowerCase().trim();
+        const estadoFiltro  = document.getElementById('filter-estado')?.value  ?? '';
+        const mascotaFiltro = document.getElementById('filter-mascota')?.value ?? '';
+
+        const filas = document.querySelectorAll('.data-table tbody tr:not(#fila-sin-resultados)');
+        let visibles = 0;
+
+        filas.forEach(fila => {
+            const texto   = fila.dataset.texto   ?? fila.textContent.toLowerCase();
+            const estado  = fila.dataset.estado  ?? '';
+            const mascota = fila.dataset.mascota ?? '';
+
+            const okBusqueda = !busqueda       || texto.includes(busqueda);
+            const okEstado   = !estadoFiltro   || estado === estadoFiltro;
+            const okMascota  = !mascotaFiltro  || mascota === mascotaFiltro;
+
+            const visible = okBusqueda && okEstado && okMascota;
+            fila.style.display = visible ? '' : 'none';
+            if (visible) visibles++;
+        });
+
+        const filaSinResultados = document.getElementById('fila-sin-resultados');
+        if (filaSinResultados) {
+            filaSinResultados.style.display = visibles === 0 ? '' : 'none';
+        }
+    }
+
+    const inputBusqueda  = document.getElementById('search-honorarios');
+    const selectEstado   = document.getElementById('filter-estado');
+    const selectMascota  = document.getElementById('filter-mascota');
+
+    if (inputBusqueda) inputBusqueda.addEventListener('input',  filtrarTabla);
+    if (selectEstado)  selectEstado.addEventListener('change',  filtrarTabla);
+    if (selectMascota) selectMascota.addEventListener('change', filtrarTabla);
+
 });

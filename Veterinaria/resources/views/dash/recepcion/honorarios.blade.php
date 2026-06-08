@@ -13,10 +13,10 @@
                 <span class="btn-icon">+</span>
                 Nuevo Honorario
             </button>
-            <button class="btn-secondary">
+            <a href="{{ route('honorarios.honorarios.reporte') }}" class="btn-secondary">
                 <span class="btn-icon">📊</span>
                 Reporte General
-            </button>
+            </a>
         </div>
     </div>
 
@@ -75,10 +75,6 @@
                     <option value="{{ $mascota['id'] }}">{{ $mascota['display_name'] }}</option>
                 @endforeach
             </select>
-            <button class="btn-filter" id="btn-filtrar">
-                <span class="btn-icon">🔍</span>
-                Filtrar
-            </button>
         </div>
     </div>
 
@@ -100,7 +96,10 @@
                 </thead>
                 <tbody>
                     @foreach($honorarios as $honorario)
-                        <tr data-id="{{ $honorario->id_honorario }}">
+                        <tr data-id="{{ $honorario->id_honorario }}"
+                            data-mascota="{{ $honorario->id_mascota }}"
+                            data-estado="{{ $honorario->estado }}"
+                            data-texto="{{ strtolower($honorario->id_honorario . ' ' . $honorario->mascota_nombre . ' ' . $honorario->propietario_nombre) }}">
                             <td>{{ $honorario->id_honorario }}</td>
                             <td>
                                 <div class="pet-info">
@@ -141,6 +140,11 @@
                             </td>
                         </tr>
                     @endforeach
+                    <tr id="fila-sin-resultados" style="display:none;">
+                        <td colspan="9" style="text-align:center; padding:30px; color:#94a3b8;">
+                            No se encontraron honorarios con los filtros seleccionados.
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         @else
@@ -191,15 +195,28 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="honorario-fecha-ingreso">Fecha de Ingreso *</label>
-                            <input type="date" id="honorario-fecha-ingreso" name="fecha_ingreso" 
-                                   class="form-control" value="{{ date('Y-m-d') }}" required>
+                            <input type="date" id="honorario-fecha-ingreso" name="fecha_ingreso"
+                                   class="form-control" value="{{ date('Y-m-d') }}"
+                                   min="{{ date('Y-m-d') }}" readonly tabindex="-1"
+                                   onkeydown="return false" onpaste="return false"
+                                   style="background-color: #f1f5f9; cursor: not-allowed;"
+                                   title="La fecha de ingreso se registra automáticamente con la fecha actual" required>
+                            <small class="form-text text-muted">Se registra automáticamente con la fecha actual</small>
                         </div>
                         <div class="form-group">
                             <label for="honorario-fecha-corte">Fecha de Corte</label>
-                            <input type="date" id="honorario-fecha-corte" name="fecha_corte" class="form-control">
+                            <input type="date" id="honorario-fecha-corte" name="fecha_corte"
+                                   class="form-control" min="{{ date('Y-m-d') }}"
+                                   title="La fecha de corte no puede ser anterior a la fecha de ingreso">
+                            <small class="form-text text-muted">Opcional. No puede ser anterior a la fecha de ingreso</small>
                         </div>
                     </div>
                     
+                    <div id="honorario-form-alert" style="display:none; margin-bottom: 10px;"
+                         class="alert alert-warning">
+                        <span id="honorario-form-alert-msg"></span>
+                    </div>
+
                     <div class="form-section">
                         <div class="section-header">
                             <h4>Detalles del Honorario</h4>
@@ -212,22 +229,24 @@
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label>Concepto *</label>
-                                        <input type="text" name="detalles[0][concepto]" 
-                                               class="form-control concepto-input" 
-                                               placeholder="Descripción del servicio" required>
+                                        <input type="text" name="detalles[0][concepto]"
+                                               class="form-control concepto-input"
+                                               placeholder="Descripción del servicio"
+                                               maxlength="200" pattern=".*\S.*"
+                                               title="El concepto es obligatorio y no puede contener solo espacios" required>
                                         <div class="concepto-suggestions"></div>
                                     </div>
                                     <div class="form-group form-group-small">
                                         <label>Cantidad *</label>
-                                        <input type="number" name="detalles[0][cantidad]" 
-                                               class="form-control cantidad-input" 
-                                               min="1" value="1" required>
+                                        <input type="number" name="detalles[0][cantidad]"
+                                               class="form-control cantidad-input"
+                                               min="1" max="9999" step="1" value="1" required>
                                     </div>
                                     <div class="form-group">
                                         <label>Precio Unitario *</label>
-                                        <input type="number" name="detalles[0][precio_unitario]" 
-                                               class="form-control precio-input" 
-                                               step="0.01" min="0" required>
+                                        <input type="number" name="detalles[0][precio_unitario]"
+                                               class="form-control precio-input"
+                                               step="0.01" min="0.01" max="999999.99" required>
                                     </div>
                                     <div class="form-group">
                                         <label>Importe</label>
@@ -296,7 +315,9 @@
                     <div class="form-group">
                         <label for="pago-notas">Notas (Opcional)</label>
                         <textarea id="pago-notas" name="notas" class="form-control" rows="3"
+                                  maxlength="500"
                                   placeholder="Notas adicionales sobre el pago..."></textarea>
+                        <small class="form-text text-muted">Máximo 500 caracteres</small>
                     </div>
 
                     <div class="pago-preview" id="pago-preview" style="display: none;">

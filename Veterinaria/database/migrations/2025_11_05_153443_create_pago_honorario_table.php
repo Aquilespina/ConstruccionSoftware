@@ -15,8 +15,9 @@ return new class extends Migration
             $table->id('id_pago');
             $table->unsignedInteger('id_honorario');
             $table->decimal('monto', 10, 2);
-            $table->enum('tipo_pago', ['Efectivo', 'Tarjeta', 'Transferencia']);
-            $table->text('notas')->nullable();
+            // El controlador guarda el método en minúscula (strtolower) en la columna metodo_pago
+            $table->enum('metodo_pago', ['efectivo', 'tarjeta', 'transferencia']);
+            $table->text('observaciones')->nullable();
             $table->timestamp('fecha_pago');
             
             $table->foreign('id_honorario')->references('id_honorario')->on('honorario')->onDelete('cascade');

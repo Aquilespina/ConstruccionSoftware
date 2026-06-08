@@ -23,6 +23,7 @@ class HonorariosController extends Controller
                 ->leftJoin('hospitalizacion as hosp', 'h.id_hospitalizacion', '=', 'hosp.id_hospitalizacion')
                 ->select(
                     'h.id_honorario',
+                    'h.id_mascota',
                     'h.fecha_ingreso',
                     'h.fecha_corte',
                     'h.subtotal',
@@ -61,13 +62,13 @@ class HonorariosController extends Controller
             $validatedData = $request->validate([
                 'id_mascota' => 'required|exists:mascota,id_mascota',
                 'id_hospitalizacion' => 'nullable|exists:hospitalizacion,id_hospitalizacion',
-                'fecha_ingreso' => 'required|date',
+                'fecha_ingreso' => 'required|date|before_or_equal:today',
                 'fecha_corte' => 'nullable|date|after_or_equal:fecha_ingreso',
                 'detalles' => 'required|array|min:1',
-                'detalles.*.concepto' => 'required|string|max:200',
-                'detalles.*.cantidad' => 'required|integer|min:1',
-                'detalles.*.precio_unitario' => 'required|numeric|min:0'
-            ]);
+                'detalles.*.concepto' => ['required', 'string', 'max:200', 'regex:/\S/'],
+                'detalles.*.cantidad' => 'required|integer|min:1|max:9999',
+                'detalles.*.precio_unitario' => 'required|numeric|min:0.01|max:999999.99|decimal:0,2'
+            ], $this->mensajesValidacionHonorario());
 
             DB::beginTransaction();
 
@@ -175,9 +176,35 @@ class HonorariosController extends Controller
 
             $detalles = DB::table('detalle_honorario')
                 ->where('id_honorario', $id)
+                ->orderBy('id_detalle', 'asc')
                 ->get();
 
-            return view('honorarios.show', compact('honorario', 'detalles'));
+            $pagos = DB::table('pago_honorario')
+                ->where('id_honorario', $id)
+                ->orderBy('fecha_pago', 'asc')
+                ->get();
+
+            $totalPagadoReal  = $pagos->sum('monto');
+            $saldoPendiente   = $honorario->subtotal - $totalPagadoReal;
+            $porcentajePagado = $honorario->subtotal > 0
+                ? ($totalPagadoReal / $honorario->subtotal * 100)
+                : 0;
+
+            $detallesConEstado = $this->calcularEstadoPagosDetalles($detalles, $pagos);
+
+            $mascotas          = Mascota::getMascotasConPropietarios();
+            $hospitalizaciones = $this->getHospitalizacionesActivas();
+
+            return view('honorarios.show', compact(
+                'honorario',
+                'detallesConEstado',
+                'pagos',
+                'totalPagadoReal',
+                'saldoPendiente',
+                'porcentajePagado',
+                'mascotas',
+                'hospitalizaciones'
+            ));
         } catch (\Exception $e) {
             return redirect()->route('honorarios.honorarios.index')
                 ->with('error', 'Error al cargar el honorario');
@@ -257,13 +284,13 @@ class HonorariosController extends Controller
             $validatedData = $request->validate([
                 'id_mascota' => 'required|exists:mascota,id_mascota',
                 'id_hospitalizacion' => 'nullable|exists:hospitalizacion,id_hospitalizacion',
-                'fecha_ingreso' => 'required|date',
+                'fecha_ingreso' => 'required|date|before_or_equal:today',
                 'fecha_corte' => 'nullable|date|after_or_equal:fecha_ingreso',
                 'detalles' => 'required|array|min:1',
-                'detalles.*.concepto' => 'required|string|max:200',
-                'detalles.*.cantidad' => 'required|integer|min:1',
-                'detalles.*.precio_unitario' => 'required|numeric|min:0'
-            ]);
+                'detalles.*.concepto' => ['required', 'string', 'max:200', 'regex:/\S/'],
+                'detalles.*.cantidad' => 'required|integer|min:1|max:9999',
+                'detalles.*.precio_unitario' => 'required|numeric|min:0.01|max:999999.99|decimal:0,2'
+            ], $this->mensajesValidacionHonorario());
 
             DB::beginTransaction();
 
@@ -379,9 +406,18 @@ class HonorariosController extends Controller
         try {
             // Validar datos de entrada
             $validatedData = $request->validate([
-                'monto' => 'required|numeric|min:0.01',
+                'monto' => 'required|numeric|min:0.01|max:99999999.99|decimal:0,2',
                 'tipo_pago' => 'required|in:Efectivo,Tarjeta,Transferencia',
                 'notas' => 'nullable|string|max:500'
+            ], [
+                'monto.required' => 'El monto es obligatorio.',
+                'monto.numeric' => 'El monto debe ser un valor numérico.',
+                'monto.min' => 'El monto debe ser mayor a 0.',
+                'monto.max' => 'El monto excede el valor máximo permitido.',
+                'monto.decimal' => 'El monto admite máximo 2 decimales.',
+                'tipo_pago.required' => 'Debe seleccionar un tipo de pago.',
+                'tipo_pago.in' => 'El tipo de pago seleccionado no es válido.',
+                'notas.max' => 'Las notas no pueden exceder 500 caracteres.'
             ]);
 
             // Convertir tipo_pago a formato de base de datos (minúscula)
@@ -672,6 +708,239 @@ class HonorariosController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error al generar el PDF: ' . $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Reporte general de honorarios (vista web)
+     */
+    public function reporte(Request $request)
+    {
+        $desde = $request->input('desde');
+        $hasta = $request->input('hasta');
+
+        $query = DB::table('honorario');
+        if ($desde) $query->whereDate('fecha_ingreso', '>=', $desde);
+        if ($hasta) $query->whereDate('fecha_ingreso', '<=', $hasta);
+
+        // Totales generales
+        $stats = (object) [
+            'total_honorarios'   => (clone $query)->count(),
+            'total_subtotal'     => (clone $query)->sum('subtotal'),
+            'total_pagado'       => (clone $query)->sum('total_pagado'),
+            'total_pendiente'    => (clone $query)->sum('saldo_pendiente'),
+            'total_pendiente_count' => (clone $query)->where('estado', 'Pendiente')->count(),
+            'total_parcial_count'   => (clone $query)->where('estado', 'Parcial')->count(),
+            'total_pagado_count'    => (clone $query)->where('estado', 'Pagado')->count(),
+        ];
+        $stats->porcentaje_cobranza = $stats->total_subtotal > 0
+            ? round($stats->total_pagado / $stats->total_subtotal * 100, 1)
+            : 0;
+
+        // Desglose por estado
+        $porEstado = (clone $query)
+            ->select('estado',
+                DB::raw('COUNT(*) as cantidad'),
+                DB::raw('SUM(subtotal) as total_subtotal'),
+                DB::raw('SUM(total_pagado) as total_pagado'),
+                DB::raw('SUM(saldo_pendiente) as total_pendiente'))
+            ->groupBy('estado')
+            ->get();
+
+        // Propietarios con mayor saldo pendiente
+        $topDeudores = DB::table('honorario as h')
+            ->join('mascota as m', 'h.id_mascota', '=', 'm.id_mascota')
+            ->join('propietario as p', 'm.id_propietario', '=', 'p.id_propietario')
+            ->where('h.saldo_pendiente', '>', 0)
+            ->when($desde, fn($q) => $q->whereDate('h.fecha_ingreso', '>=', $desde))
+            ->when($hasta, fn($q) => $q->whereDate('h.fecha_ingreso', '<=', $hasta))
+            ->select(
+                'p.nombre as propietario',
+                'p.telefono',
+                DB::raw('SUM(h.saldo_pendiente) as total_pendiente'),
+                DB::raw('COUNT(*) as num_honorarios'))
+            ->groupBy('p.id_propietario', 'p.nombre', 'p.telefono')
+            ->orderByDesc('total_pendiente')
+            ->limit(10)
+            ->get();
+
+        // Honorarios pendientes más antiguos (antigüedad de deuda)
+        $masAntiguos = DB::table('honorario as h')
+            ->join('mascota as m', 'h.id_mascota', '=', 'm.id_mascota')
+            ->join('propietario as p', 'm.id_propietario', '=', 'p.id_propietario')
+            ->whereIn('h.estado', ['Pendiente', 'Parcial'])
+            ->when($desde, fn($q) => $q->whereDate('h.fecha_ingreso', '>=', $desde))
+            ->when($hasta, fn($q) => $q->whereDate('h.fecha_ingreso', '<=', $hasta))
+            ->select(
+                'h.id_honorario', 'h.fecha_ingreso', 'h.subtotal',
+                'h.total_pagado', 'h.saldo_pendiente', 'h.estado',
+                'm.nombre as mascota_nombre',
+                'p.nombre as propietario_nombre', 'p.telefono')
+            ->orderBy('h.fecha_ingreso', 'asc')
+            ->limit(10)
+            ->get();
+
+        // Conceptos más facturados
+        $topConceptos = DB::table('detalle_honorario as dh')
+            ->join('honorario as h', 'dh.id_honorario', '=', 'h.id_honorario')
+            ->when($desde, fn($q) => $q->whereDate('h.fecha_ingreso', '>=', $desde))
+            ->when($hasta, fn($q) => $q->whereDate('h.fecha_ingreso', '<=', $hasta))
+            ->select(
+                'dh.concepto',
+                DB::raw('COUNT(*) as veces'),
+                DB::raw('SUM(dh.importe) as total_facturado'),
+                DB::raw('AVG(dh.precio_unitario) as precio_promedio'))
+            ->groupBy('dh.concepto')
+            ->orderByDesc('total_facturado')
+            ->limit(10)
+            ->get();
+
+        // Pagos recientes
+        $pagosRecientes = DB::table('pago_honorario as ph')
+            ->join('honorario as h', 'ph.id_honorario', '=', 'h.id_honorario')
+            ->join('mascota as m', 'h.id_mascota', '=', 'm.id_mascota')
+            ->join('propietario as p', 'm.id_propietario', '=', 'p.id_propietario')
+            ->when($desde, fn($q) => $q->whereDate('ph.fecha_pago', '>=', $desde))
+            ->when($hasta, fn($q) => $q->whereDate('ph.fecha_pago', '<=', $hasta))
+            ->select(
+                'ph.id_pago', 'ph.monto', 'ph.metodo_pago', 'ph.fecha_pago',
+                'h.id_honorario',
+                'm.nombre as mascota_nombre',
+                'p.nombre as propietario_nombre')
+            ->orderByDesc('ph.fecha_pago')
+            ->limit(10)
+            ->get();
+
+        return view('honorarios.reporte', compact(
+            'stats', 'porEstado', 'topDeudores', 'masAntiguos',
+            'topConceptos', 'pagosRecientes', 'desde', 'hasta'
+        ));
+    }
+
+    /**
+     * Exportar reporte general a PDF
+     */
+    public function reportePDF(Request $request)
+    {
+        $desde = $request->input('desde');
+        $hasta = $request->input('hasta');
+
+        // Reutiliza exactamente la misma lógica del método reporte()
+        $reporteData = $this->buildReporteData($desde, $hasta);
+
+        $pdf = Pdf::loadView('honorarios.reporte-pdf', array_merge(
+            $reporteData,
+            ['desde' => $desde, 'hasta' => $hasta]
+        ))->setPaper('a4', 'portrait');
+
+        $filename = 'reporte_honorarios_' . date('Y-m-d') . '.pdf';
+        return $pdf->download($filename);
+    }
+
+    /**
+     * Construye los datos del reporte (usado por web y PDF)
+     */
+    private function buildReporteData(?string $desde, ?string $hasta): array
+    {
+        $query = DB::table('honorario');
+        if ($desde) $query->whereDate('fecha_ingreso', '>=', $desde);
+        if ($hasta) $query->whereDate('fecha_ingreso', '<=', $hasta);
+
+        $stats = (object) [
+            'total_honorarios'      => (clone $query)->count(),
+            'total_subtotal'        => (clone $query)->sum('subtotal'),
+            'total_pagado'          => (clone $query)->sum('total_pagado'),
+            'total_pendiente'       => (clone $query)->sum('saldo_pendiente'),
+            'total_pendiente_count' => (clone $query)->where('estado', 'Pendiente')->count(),
+            'total_parcial_count'   => (clone $query)->where('estado', 'Parcial')->count(),
+            'total_pagado_count'    => (clone $query)->where('estado', 'Pagado')->count(),
+        ];
+        $stats->porcentaje_cobranza = $stats->total_subtotal > 0
+            ? round($stats->total_pagado / $stats->total_subtotal * 100, 1) : 0;
+
+        $porEstado = (clone $query)
+            ->select('estado',
+                DB::raw('COUNT(*) as cantidad'),
+                DB::raw('SUM(subtotal) as total_subtotal'),
+                DB::raw('SUM(total_pagado) as total_pagado'),
+                DB::raw('SUM(saldo_pendiente) as total_pendiente'))
+            ->groupBy('estado')->get();
+
+        $topDeudores = DB::table('honorario as h')
+            ->join('mascota as m', 'h.id_mascota', '=', 'm.id_mascota')
+            ->join('propietario as p', 'm.id_propietario', '=', 'p.id_propietario')
+            ->where('h.saldo_pendiente', '>', 0)
+            ->when($desde, fn($q) => $q->whereDate('h.fecha_ingreso', '>=', $desde))
+            ->when($hasta, fn($q) => $q->whereDate('h.fecha_ingreso', '<=', $hasta))
+            ->select('p.nombre as propietario', 'p.telefono',
+                DB::raw('SUM(h.saldo_pendiente) as total_pendiente'),
+                DB::raw('COUNT(*) as num_honorarios'))
+            ->groupBy('p.id_propietario', 'p.nombre', 'p.telefono')
+            ->orderByDesc('total_pendiente')->limit(10)->get();
+
+        $masAntiguos = DB::table('honorario as h')
+            ->join('mascota as m', 'h.id_mascota', '=', 'm.id_mascota')
+            ->join('propietario as p', 'm.id_propietario', '=', 'p.id_propietario')
+            ->whereIn('h.estado', ['Pendiente', 'Parcial'])
+            ->when($desde, fn($q) => $q->whereDate('h.fecha_ingreso', '>=', $desde))
+            ->when($hasta, fn($q) => $q->whereDate('h.fecha_ingreso', '<=', $hasta))
+            ->select('h.id_honorario', 'h.fecha_ingreso', 'h.subtotal',
+                'h.total_pagado', 'h.saldo_pendiente', 'h.estado',
+                'm.nombre as mascota_nombre',
+                'p.nombre as propietario_nombre', 'p.telefono')
+            ->orderBy('h.fecha_ingreso', 'asc')->limit(10)->get();
+
+        $topConceptos = DB::table('detalle_honorario as dh')
+            ->join('honorario as h', 'dh.id_honorario', '=', 'h.id_honorario')
+            ->when($desde, fn($q) => $q->whereDate('h.fecha_ingreso', '>=', $desde))
+            ->when($hasta, fn($q) => $q->whereDate('h.fecha_ingreso', '<=', $hasta))
+            ->select('dh.concepto',
+                DB::raw('COUNT(*) as veces'),
+                DB::raw('SUM(dh.importe) as total_facturado'),
+                DB::raw('AVG(dh.precio_unitario) as precio_promedio'))
+            ->groupBy('dh.concepto')->orderByDesc('total_facturado')->limit(10)->get();
+
+        $pagosRecientes = DB::table('pago_honorario as ph')
+            ->join('honorario as h', 'ph.id_honorario', '=', 'h.id_honorario')
+            ->join('mascota as m', 'h.id_mascota', '=', 'm.id_mascota')
+            ->join('propietario as p', 'm.id_propietario', '=', 'p.id_propietario')
+            ->when($desde, fn($q) => $q->whereDate('ph.fecha_pago', '>=', $desde))
+            ->when($hasta, fn($q) => $q->whereDate('ph.fecha_pago', '<=', $hasta))
+            ->select('ph.id_pago', 'ph.monto', 'ph.metodo_pago', 'ph.fecha_pago',
+                'h.id_honorario', 'm.nombre as mascota_nombre', 'p.nombre as propietario_nombre')
+            ->orderByDesc('ph.fecha_pago')->limit(10)->get();
+
+        return compact('stats', 'porEstado', 'topDeudores', 'masAntiguos', 'topConceptos', 'pagosRecientes');
+    }
+
+    /**
+     * Mensajes de validación personalizados para el alta/edición de honorarios
+     */
+    private function mensajesValidacionHonorario()
+    {
+        return [
+            'id_mascota.required' => 'Debe seleccionar una mascota.',
+            'id_mascota.exists' => 'La mascota seleccionada no existe.',
+            'id_hospitalizacion.exists' => 'La hospitalización seleccionada no existe.',
+            'fecha_ingreso.required' => 'La fecha de ingreso es obligatoria.',
+            'fecha_ingreso.date' => 'La fecha de ingreso no es válida.',
+            'fecha_ingreso.before_or_equal' => 'La fecha de ingreso no puede ser futura.',
+            'fecha_corte.date' => 'La fecha de corte no es válida.',
+            'fecha_corte.after_or_equal' => 'La fecha de corte no puede ser anterior a la fecha de ingreso.',
+            'detalles.required' => 'Debe agregar al menos un concepto.',
+            'detalles.min' => 'Debe agregar al menos un concepto.',
+            'detalles.*.concepto.required' => 'El concepto es obligatorio.',
+            'detalles.*.concepto.max' => 'El concepto no puede exceder 200 caracteres.',
+            'detalles.*.concepto.regex' => 'El concepto no puede estar vacío.',
+            'detalles.*.cantidad.required' => 'La cantidad es obligatoria.',
+            'detalles.*.cantidad.integer' => 'La cantidad debe ser un número entero.',
+            'detalles.*.cantidad.min' => 'La cantidad debe ser al menos 1.',
+            'detalles.*.cantidad.max' => 'La cantidad no puede exceder 9999.',
+            'detalles.*.precio_unitario.required' => 'El precio unitario es obligatorio.',
+            'detalles.*.precio_unitario.numeric' => 'El precio unitario debe ser numérico.',
+            'detalles.*.precio_unitario.min' => 'El precio unitario debe ser mayor a 0.',
+            'detalles.*.precio_unitario.max' => 'El precio unitario excede el valor máximo permitido.',
+            'detalles.*.precio_unitario.decimal' => 'El precio unitario admite máximo 2 decimales.',
+        ];
     }
 
     /**

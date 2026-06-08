@@ -617,22 +617,23 @@ body {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .stat-card {
   background: white;
-  border-radius: var(--border-radius-lg);
-  padding: 1.5rem;
+  border-radius: 8px;
+  padding: 12px 14px;
   box-shadow: var(--shadow-md);
   border: 1px solid var(--gray-200);
-  transition: all 0.3s ease;
+  border-top: 3px solid var(--gray-200);
+  transition: all 0.2s ease;
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-lg);
 }
 
@@ -640,46 +641,40 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 6px;
 }
 
 .stat-title {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--gray-700);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--border-radius);
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 1.25rem;
+  font-size: 13px;
+  flex-shrink: 0;
 }
 
-.icon-blue {
-  background-color: var(--secondary);
-}
-
-.icon-green {
-  background-color: var(--success);
-}
-
-.icon-orange {
-  background-color: var(--warning);
-}
-
-.icon-red {
-  background-color: var(--danger);
-}
+.icon-blue   { background-color: var(--secondary); }
+.icon-green  { background-color: var(--success); }
+.icon-orange { background-color: var(--warning); }
+.icon-red    { background-color: var(--danger); }
 
 .stat-value {
-  font-size: 2rem;
+  font-size: 20px;
   font-weight: 700;
   color: var(--gray-900);
+  line-height: 1.2;
+  margin-bottom: 2px;
 }
 
 .panels-grid {
@@ -1054,7 +1049,7 @@ body {
 
 @media (max-width: 768px) {
   .stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
   
   .panels-grid {

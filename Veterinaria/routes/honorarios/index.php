@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Route;
     Route::get('/', [HonorariosController::class, 'index'])->name('honorarios.index');
     Route::post('/', [HonorariosController::class, 'store'])->name('honorarios.store');
     Route::get('/conceptos/receta', [HonorariosController::class, 'getConceptosReceta'])->name('honorarios.conceptos');
+    Route::get('/reporte/general', [HonorariosController::class, 'reporte'])->name('honorarios.reporte');
+    Route::get('/reporte/pdf', [HonorariosController::class, 'reportePDF'])->name('honorarios.reporte-pdf');
     Route::get('/{id_honorario}', [HonorariosController::class, 'show'])->name('honorarios.show');
     Route::get('/{id_honorario}/edit', [HonorariosController::class, 'edit'])->name('honorarios.edit');
     Route::put('/{id_honorario}', [HonorariosController::class, 'update'])->name('honorarios.update');
