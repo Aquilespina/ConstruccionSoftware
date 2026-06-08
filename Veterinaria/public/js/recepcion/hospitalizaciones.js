@@ -1,317 +1,326 @@
-// Variables globales
-let csrfToken = '';
+document.addEventListener('DOMContentLoaded', function () {
 
-// Inicialización
-document.addEventListener('DOMContentLoaded', function() {
-    // Obtener token CSRF
-    csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || 
-                document.querySelector('input[name="_token"]')?.value || '';
-    
-    // Event listeners
-    const btnNuevaHospitalizacion = document.getElementById('btn-nueva-hospitalizacion');
-    if (btnNuevaHospitalizacion) {
-        btnNuevaHospitalizacion.addEventListener('click', abrirModalHospitalizacion);
-    }
-    
-    const searchInput = document.getElementById('search-hospitalizaciones');
-    if (searchInput) {
-        searchInput.addEventListener('input', filtrarTabla);
-    }
-    
-    const estadoFilter = document.getElementById('filter-estado-hospitalizacion');
-    if (estadoFilter) {
-        estadoFilter.addEventListener('change', filtrarTabla);
+    const CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+    // ── Fecha de ingreso: readonly + valor actual ──────────────────────
+    const fechaInput = document.getElementById('hospitalizacion-fecha-ingreso');
+    if (fechaInput) {
+        const ahora = new Date();
+        const pad   = n => String(n).padStart(2, '0');
+        fechaInput.value = `${ahora.getFullYear()}-${pad(ahora.getMonth()+1)}-${pad(ahora.getDate())}T${pad(ahora.getHours())}:${pad(ahora.getMinutes())}`;
+        fechaInput.readOnly = true;
     }
 
-    // Event listener para el formulario
-    const formHospitalizacion = document.getElementById('form-hospitalizacion');
-    if (formHospitalizacion) {
-        formHospitalizacion.addEventListener('submit', function(e) {
-            e.preventDefault();
-            guardarHospitalizacion();
-        });
-    }
+    // ── Abrir modal nueva hospitalización ─────────────────────────────
+    const btnNueva = document.getElementById('btn-nueva-hospitalizacion');
+    if (btnNueva) btnNueva.addEventListener('click', abrirModalHospitalizacion);
 
-    // Establecer fecha y hora actual por defecto
-    const fechaIngresoInput = document.getElementById('hospitalizacion-fecha-ingreso');
-    if (fechaIngresoInput) {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        
-        fechaIngresoInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+    // ── Filtros automáticos ───────────────────────────────────────────
+    const inputBuscar = document.getElementById('search-hospitalizaciones');
+    const selectEstado = document.getElementById('filter-estado-hospitalizacion');
+    if (inputBuscar)   inputBuscar.addEventListener('input', filtrarTabla);
+    if (selectEstado)  selectEstado.addEventListener('change', filtrarTabla);
+
+    // Actualizar label de cambio de estado al cambiar el select
+    const editarEstadoSel = document.getElementById('editar-estado');
+    if (editarEstadoSel) {
+        editarEstadoSel.addEventListener('change', actualizarLabelCambio);
     }
 });
 
-// Filtrar tabla de hospitalizaciones
+// ── Filtro de tabla ────────────────────────────────────────────────────
 function filtrarTabla() {
-    const searchInput = document.getElementById('search-hospitalizaciones');
-    const estadoFilter = document.getElementById('filter-estado-hospitalizacion');
-    
-    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
-    const estado = estadoFilter ? estadoFilter.value.toLowerCase() : '';
-    
-    const rows = document.querySelectorAll('.data-table tbody tr');
-    
-    rows.forEach(row => {
-        // Índices corregidos según la nueva estructura de la tabla:
-        // 0: ID, 1: Mascota, 2: Especie, 3: Propietario, 4: Fecha Ingreso, 5: Fecha Egreso, 6: Estado, 7: Acciones
-        const mascotaCell = row.cells[1]?.textContent.toLowerCase() || '';
-        const especieCell = row.cells[2]?.textContent.toLowerCase() || '';
-        const propietarioCell = row.cells[3]?.textContent.toLowerCase() || '';
-        const estadoCell = row.cells[6]?.textContent.toLowerCase() || '';
-        
-        const matchesSearch = 
-            mascotaCell.includes(searchTerm) ||
-            especieCell.includes(searchTerm) ||
-            propietarioCell.includes(searchTerm);
-        
-        const matchesEstado = !estado || estadoCell.includes(estado);
-        
-        if (matchesSearch && matchesEstado) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
+    const busqueda = (document.getElementById('search-hospitalizaciones')?.value ?? '').toLowerCase().trim();
+    const estado   = document.getElementById('filter-estado-hospitalizacion')?.value ?? '';
+    const filas    = document.querySelectorAll('#tabla-hospitalizaciones tbody tr:not(#hosp-sin-resultados)');
+    let visibles   = 0;
+
+    filas.forEach(fila => {
+        const texto    = fila.textContent.toLowerCase();
+        const estadoFila = fila.dataset.estado ?? '';
+        const ok = (!busqueda || texto.includes(busqueda)) && (!estado || estadoFila === estado);
+        fila.style.display = ok ? '' : 'none';
+        if (ok) visibles++;
     });
+
+    const sinResultados = document.getElementById('hosp-sin-resultados');
+    if (sinResultados) sinResultados.style.display = visibles === 0 ? '' : 'none';
 }
 
-// Filtrar hospitalizaciones
-function filtrarHospitalizaciones() {
-    const searchTerm = searchInput.value.toLowerCase();
-    const estado = estadoFilter.value;
-    const area = areaFilter.value;
-    
-    const hospitalizacionesFiltradas = hospitalizaciones.filter(hosp => {
-        const matchesSearch = 
-            hosp.nombre.toLowerCase().includes(searchTerm) ||
-            hosp.propietario.toLowerCase().includes(searchTerm) ||
-            hosp.diagnostico.toLowerCase().includes(searchTerm);
-        
-        const matchesEstado = !estado || hosp.estado === estado;
-        
-        // En este ejemplo, el área se determina por la cama
-        let hospArea = '';
-        if (hosp.cama.startsWith('UCI')) hospArea = 'uci';
-        else if (hosp.cama.startsWith('GEN')) hospArea = 'general';
-        else if (hosp.cama.startsWith('AIS')) hospArea = 'aislamiento';
-        
-        const matchesArea = !area || hospArea === area;
-        
-        return matchesSearch && matchesEstado && matchesArea;
-    });
-    
-    renderHospitalizaciones(hospitalizacionesFiltradas);
-}
-
-// Funciones del modal
+// ── Modal nueva hospitalización ────────────────────────────────────────
 function abrirModalHospitalizacion() {
-    const modal = document.getElementById('modal-hospitalizacion');
-    if (modal) {
-        modal.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
+    // Actualizar la fecha al momento de abrir el modal
+    const fechaInput = document.getElementById('hospitalizacion-fecha-ingreso');
+    if (fechaInput) {
+        const ahora = new Date();
+        const pad   = n => String(n).padStart(2, '0');
+        fechaInput.value = `${ahora.getFullYear()}-${pad(ahora.getMonth()+1)}-${pad(ahora.getDate())}T${pad(ahora.getHours())}:${pad(ahora.getMinutes())}`;
     }
+    document.getElementById('modal-hospitalizacion').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
 }
 
 function cerrarModalHospitalizacion() {
-    const modal = document.getElementById('modal-hospitalizacion');
-    const form = document.getElementById('form-hospitalizacion');
-    
-    if (modal) {
-        modal.style.display = 'none';
-        document.body.style.overflow = 'auto';
-    }
-    
-    if (form) {
-        form.reset();
-    }
+    document.getElementById('modal-hospitalizacion').style.display = 'none';
+    document.getElementById('form-hospitalizacion').reset();
+    document.body.style.overflow = 'auto';
 }
 
 async function guardarHospitalizacion() {
-    // Obtener elementos del formulario corregidos
-    const mascotaSelect = document.getElementById('hospitalizacion-mascota');
-    const fechaIngresoInput = document.getElementById('hospitalizacion-fecha-ingreso');
-    const estadoSelect = document.getElementById('hospitalizacion-estado');
-    const observacionesTextarea = document.getElementById('hospitalizacion-observaciones');
-    const citaSelect = document.getElementById('hospitalizacion-cita');
-    
-    // Validación básica
-    const mascotaId = mascotaSelect?.value;
-    const fechaIngreso = fechaIngresoInput?.value;
-    const estado = estadoSelect?.value;
-    
-    if (!mascotaId || !fechaIngreso || !estado) {
-        mostrarAlerta('Por favor, complete todos los campos obligatorios (Mascota, Fecha de Ingreso y Estado).', 'error');
+    const form = document.getElementById('form-hospitalizacion');
+
+    // Validación front: observaciones obligatoria
+    const obs = document.getElementById('hospitalizacion-observaciones');
+    if (!obs.value.trim()) {
+        obs.focus();
+        mostrarAlerta('Las observaciones son obligatorias.', 'error');
         return;
     }
-    
+
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const btn = document.querySelector('#modal-hospitalizacion .btn-primary');
+    const txtOriginal = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+
     try {
-        // Deshabilitar botón para evitar doble envío
-        const btnGuardar = document.querySelector('.btn-primary[onclick="guardarHospitalizacion()"]');
-        if (btnGuardar) {
-            btnGuardar.disabled = true;
-            btnGuardar.textContent = 'Guardando...';
-        }
-        
-        // Preparar datos para envío usando FormData
-        const formData = new FormData();
-        formData.append('_token', csrfToken);
-        formData.append('id_mascota', mascotaId);
-        formData.append('fecha_ingreso', fechaIngreso);
-        formData.append('estado', estado);
-        
-        // Campos opcionales
-        if (observacionesTextarea?.value) {
-            formData.append('observaciones', observacionesTextarea.value);
-        }
-        
-        if (citaSelect?.value) {
-            formData.append('id_cita', citaSelect.value);
-        }
-        
-        console.log('Enviando datos:', {
-            id_mascota: mascotaId,
-            fecha_ingreso: fechaIngreso,
-            estado: estado,
-            observaciones: observacionesTextarea?.value,
-            id_cita: citaSelect?.value
-        });
-        
-        // Enviar datos al servidor
-        const response = await fetch('/recepcion/hospitalizaciones', {
+        const formData = new FormData(form);
+        const res  = await fetch('/recepcion/hospitalizaciones', {
             method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRF-TOKEN': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+            body:   formData,
+            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '', 'X-Requested-With': 'XMLHttpRequest' }
         });
-        
-        if (response.ok) {
+        const data = await res.json();
+
+        if (data.success) {
             cerrarModalHospitalizacion();
-            mostrarAlerta('Hospitalización registrada correctamente.', 'success');
-            setTimeout(() => {
-                location.reload(); // Recargar para mostrar los nuevos datos
-            }, 1500);
+            mostrarAlerta(data.message, 'success');
+            setTimeout(() => location.reload(), 1200);
         } else {
-            // Intentar obtener el mensaje de error del servidor
-            let errorMessage = 'Error al guardar la hospitalización';
-            try {
-                const errorData = await response.json();
-                if (errorData.message) {
-                    errorMessage = errorData.message;
-                } else if (errorData.errors) {
-                    const errors = Object.values(errorData.errors).flat();
-                    errorMessage = errors.join(', ');
-                }
-            } catch (e) {
-                console.error('Error parsing response:', e);
-            }
-            throw new Error(errorMessage);
+            const errores = data.errors ? Object.values(data.errors).flat().join(' · ') : data.message;
+            mostrarAlerta(errores, 'error');
         }
-    } catch (error) {
-        console.error('Error:', error);
-        mostrarAlerta(`Error al registrar la hospitalización: ${error.message}`, 'error');
+    } catch (e) {
+        mostrarAlerta('Error al registrar la hospitalización.', 'error');
     } finally {
-        // Rehabilitar botón
-        const btnGuardar = document.querySelector('.btn-primary[onclick="guardarHospitalizacion()"]');
-        if (btnGuardar) {
-            btnGuardar.disabled = false;
-            btnGuardar.textContent = 'Registrar Hospitalización';
-        }
+        btn.disabled = false;
+        btn.textContent = txtOriginal;
     }
 }
 
-// Función para mostrar alertas
-function mostrarAlerta(mensaje, tipo = 'info') {
-    // Crear el elemento de alerta
-    const alerta = document.createElement('div');
-    alerta.className = `alert alert-${tipo}`;
-    alerta.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 15px 20px;
-        border-radius: 5px;
-        color: white;
-        font-weight: 500;
-        z-index: 9999;
-        max-width: 400px;
-        animation: slideInRight 0.3s ease;
-    `;
-    
-    // Colores según el tipo
-    switch(tipo) {
-        case 'success':
-            alerta.style.backgroundColor = '#10b981';
-            break;
-        case 'error':
-            alerta.style.backgroundColor = '#ef4444';
-            break;
-        case 'warning':
-            alerta.style.backgroundColor = '#f59e0b';
-            break;
-        default:
-            alerta.style.backgroundColor = '#3b82f6';
+// ── Modal Ver ──────────────────────────────────────────────────────────
+async function verHospitalizacion(id) {
+    try {
+        const res  = await fetch(`/recepcion/hospitalizaciones/${id}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '' }
+        });
+        const data = await res.json();
+        if (!data.success) { mostrarAlerta(data.message, 'error'); return; }
+
+        const h = data.hospitalizacion;
+        const fmt = dt => dt ? new Date(dt).toLocaleString('es-MX', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+
+        document.getElementById('ver-hosp-body').innerHTML = `
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px 20px; font-size:13px;">
+                <div>
+                    <div style="font-size:11px; color:#64748b; text-transform:uppercase; margin-bottom:2px;">Mascota</div>
+                    <div style="font-weight:600; color:#1e293b;">${esc(h.mascota_nombre)}</div>
+                    <div style="font-size:11px; color:#94a3b8;">${esc(h.especie ?? '')}${h.raza ? ' · ' + esc(h.raza) : ''}</div>
+                </div>
+                <div>
+                    <div style="font-size:11px; color:#64748b; text-transform:uppercase; margin-bottom:2px;">Propietario</div>
+                    <div style="font-weight:600; color:#1e293b;">${esc(h.propietario_nombre)}</div>
+                    <div style="font-size:11px; color:#94a3b8;">${esc(h.propietario_telefono ?? '—')}</div>
+                </div>
+                <div>
+                    <div style="font-size:11px; color:#64748b; text-transform:uppercase; margin-bottom:2px;">Fecha de Ingreso</div>
+                    <div style="font-weight:600;">${fmt(h.fecha_ingreso)}</div>
+                </div>
+                <div>
+                    <div style="font-size:11px; color:#64748b; text-transform:uppercase; margin-bottom:2px;">Fecha de Egreso</div>
+                    <div style="font-weight:600;">${fmt(h.fecha_egreso)}</div>
+                </div>
+                <div>
+                    <div style="font-size:11px; color:#64748b; text-transform:uppercase; margin-bottom:2px;">Estado</div>
+                    <span style="display:inline-block; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:700;
+                        background:${h.estado==='Alta'?'#dcfce7':h.estado==='Internado'?'#fee2e2':'#fef9c3'};
+                        color:${h.estado==='Alta'?'#166534':h.estado==='Internado'?'#991b1b':'#854d0e'};">
+                        ${esc(h.estado)}
+                    </span>
+                </div>
+                <div>
+                    <div style="font-size:11px; color:#64748b; text-transform:uppercase; margin-bottom:2px;">ID</div>
+                    <div style="font-weight:600;">#${h.id_hospitalizacion}</div>
+                </div>
+            </div>
+            <div style="margin-top:16px;">
+                <div style="font-size:11px; color:#64748b; text-transform:uppercase; margin-bottom:4px;">Observaciones</div>
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:10px 12px; font-size:13px; color:#334155; white-space:pre-wrap; min-height:60px;">
+                    ${esc(h.observaciones ?? '—')}
+                </div>
+            </div>`;
+
+        document.getElementById('modal-ver-hospitalizacion').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    } catch (e) {
+        mostrarAlerta('Error al cargar los datos.', 'error');
     }
-    
-    alerta.textContent = mensaje;
-    
-    // Agregar al DOM
-    document.body.appendChild(alerta);
-    
-    // Remover después de 5 segundos
-    setTimeout(() => {
-        alerta.style.animation = 'slideOutRight 0.3s ease';
-        setTimeout(() => {
-            if (alerta.parentNode) {
-                alerta.parentNode.removeChild(alerta);
-            }
-        }, 300);
-    }, 5000);
+};
+
+function cerrarModalVer() {
+    document.getElementById('modal-ver-hospitalizacion').style.display = 'none';
+    document.body.style.overflow = 'auto';
 }
 
-// Agregar CSS para animaciones
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideInRight {
-        from {
-            opacity: 0;
-            transform: translateX(100%);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-    
-    @keyframes slideOutRight {
-        from {
-            opacity: 1;
-            transform: translateX(0);
-        }
-        to {
-            opacity: 0;
-            transform: translateX(100%);
-        }
-    }
-`;
-document.head.appendChild(style);
+// ── Modal Editar ───────────────────────────────────────────────────────
+async function editarHospitalizacion(id) {
+    try {
+        const res  = await fetch(`/recepcion/hospitalizaciones/${id}/editar`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '' }
+        });
+        const data = await res.json();
+        if (!data.success) { mostrarAlerta(data.message, 'error'); return; }
 
-// Cerrar modal al hacer clic fuera del contenido
-window.addEventListener('click', function(event) {
-    const modal = document.getElementById('modal-hospitalizacion');
-    if (event.target === modal) {
-        cerrarModalHospitalizacion();
-    }
-});
+        const h = data.hospitalizacion;
 
-// Manejar tecla Escape para cerrar modal
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        cerrarModalHospitalizacion();
+        document.getElementById('editar-hosp-id').value         = h.id_hospitalizacion;
+        document.getElementById('editar-estado-anterior').value = h.estado;
+        document.getElementById('editar-mascota-display').value = h.mascota_nombre + ' — ' + h.propietario_nombre;
+        document.getElementById('editar-estado').value          = h.estado;
+        document.getElementById('editar-nuevo-comentario').value = '';
+
+        // Mostrar historial existente
+        const historialDiv = document.getElementById('editar-historial');
+        historialDiv.textContent = h.observaciones
+            ? h.observaciones
+            : '(Sin observaciones previas)';
+
+        // La fecha de egreso se asigna automáticamente si ya tenía una previa (conservar)
+        const fechaEgresoInput = document.getElementById('editar-fecha-egreso');
+        if (h.fecha_egreso) {
+            const d   = new Date(h.fecha_egreso);
+            const pad = n => String(n).padStart(2, '0');
+            fechaEgresoInput.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        } else {
+            fechaEgresoInput.value = '';
+        }
+
+        actualizarLabelCambio();
+
+        document.getElementById('modal-editar-hospitalizacion').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    } catch (e) {
+        mostrarAlerta('Error al cargar los datos.', 'error');
     }
-});
+}
+
+function cerrarModalEditar() {
+    document.getElementById('modal-editar-hospitalizacion').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+// Muestra junto al label el cambio de estado que se va a registrar
+function actualizarLabelCambio() {
+    const anterior = document.getElementById('editar-estado-anterior')?.value ?? '';
+    const nuevo    = document.getElementById('editar-estado')?.value ?? '';
+    const lbl      = document.getElementById('lbl-cambio-estado');
+    if (!lbl) return;
+
+    if (anterior && nuevo && anterior !== nuevo) {
+        lbl.textContent = `(${anterior} → ${nuevo})`;
+        lbl.style.color = '#2563eb';
+    } else if (anterior) {
+        lbl.textContent = `(sin cambio de estado)`;
+        lbl.style.color = '#94a3b8';
+    }
+}
+
+
+async function guardarEdicionHospitalizacion() {
+    const id          = document.getElementById('editar-hosp-id').value;
+    const estadoAntes = document.getElementById('editar-estado-anterior').value;
+    const estadoNuevo = document.getElementById('editar-estado').value;
+    const comentario  = document.getElementById('editar-nuevo-comentario');
+
+    if (!comentario.value.trim()) {
+        comentario.focus();
+        mostrarAlerta('El comentario es obligatorio para registrar el cambio.', 'error');
+        return;
+    }
+
+    // Construir la entrada del log: [fecha] EstadoAntes → EstadoNuevo: comentario
+    const ahora = new Date();
+    const pad   = n => String(n).padStart(2, '0');
+    const fecha = `${pad(ahora.getDate())}/${pad(ahora.getMonth()+1)}/${ahora.getFullYear()} ${pad(ahora.getHours())}:${pad(ahora.getMinutes())}`;
+
+    let encabezado = `[${fecha}]`;
+    encabezado += estadoAntes !== estadoNuevo
+        ? ` ${estadoAntes} → ${estadoNuevo}`
+        : ` ${estadoNuevo}`;
+    const entradaLog = `${encabezado}: ${comentario.value.trim()}`;
+
+    // Si el nuevo estado es Alta, asignar fecha de egreso = ahora (con segundos para evitar
+    // problemas de validación en el backend con el formato datetime-local)
+    const fechaEgresoInput = document.getElementById('editar-fecha-egreso');
+    if (estadoNuevo === 'Alta' && !fechaEgresoInput.value) {
+        fechaEgresoInput.value = `${ahora.getFullYear()}-${pad(ahora.getMonth()+1)}-${pad(ahora.getDate())} ${pad(ahora.getHours())}:${pad(ahora.getMinutes())}:${pad(ahora.getSeconds())}`;
+    }
+
+    const btn = document.getElementById('btn-guardar-editar');
+    const txtOriginal = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+
+    try {
+        const body = new URLSearchParams({
+            _method:          'PUT',
+            _token:           document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+            estado:           estadoNuevo,
+            nuevo_comentario: entradaLog,
+            fecha_egreso:     fechaEgresoInput.value ?? '',
+        });
+
+        const res  = await fetch(`/recepcion/hospitalizaciones/${id}`, {
+            method:  'POST',
+            body:    body,
+            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '', 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            cerrarModalEditar();
+            mostrarAlerta(data.message, 'success');
+            setTimeout(() => location.reload(), 1200);
+        } else {
+            const errores = data.errors ? Object.values(data.errors).flat().join(' · ') : data.message;
+            mostrarAlerta(errores, 'error');
+        }
+    } catch (e) {
+        mostrarAlerta('Error al guardar los cambios.', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = txtOriginal;
+    }
+}
+
+// ── Utilidades ─────────────────────────────────────────────────────────
+function esc(str) {
+    const d = document.createElement('div');
+    d.appendChild(document.createTextNode(String(str ?? '')));
+    return d.innerHTML;
+}
+
+function mostrarAlerta(mensaje, tipo) {
+    const el = document.createElement('div');
+    el.style.cssText = `position:fixed;top:20px;right:20px;padding:14px 20px;border-radius:8px;
+        color:#fff;font-weight:500;z-index:99999;max-width:420px;font-size:13px;
+        background:${tipo==='success'?'#10b981':tipo==='error'?'#ef4444':'#f59e0b'};
+        box-shadow:0 4px 12px rgba(0,0,0,.15);`;
+    el.textContent = mensaje;
+    document.body.appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 300); }, 4000);
+}
