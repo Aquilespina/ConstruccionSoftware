@@ -94,6 +94,10 @@ Route::middleware(['auth', 'role:recepcionista'])->group(function () {
             return view('dash.recepcion.home');
         })->name('recepcion.home');
 
+        // Búsqueda global
+        Route::get('/buscar', [\App\Http\Controllers\Recepcion\BusquedaController::class, 'search'])
+            ->name('recepcion.buscar');
+
         // Rutas para propietarios
         Route::prefix('propietarios')->name('propietarios.')->group(function () {
             require __DIR__.'/propietarios/index.php';
